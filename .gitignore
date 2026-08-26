@@ -140,3 +140,7 @@ control/
 *.temp
 *.bak
 .gstack/
+
+# YouTube uploader OAuth secrets (do not commit)
+scripts/client_secret.json
+scripts/token.json
