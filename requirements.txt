@@ -31,3 +31,8 @@ pytz
 openai>=1.0.0
 google-genai>=1.0.0
 dashscope>=1.10.0
+
+# Local speech-to-text (transcription). The OpenAI/Azure/Google API transcription
+# paths in speech_recognizer.py are unimplemented stubs, so faster-whisper is the
+# only working engine. Runs on CPU (int8), no API key, no upload size limit.
+faster-whisper>=1.0.0

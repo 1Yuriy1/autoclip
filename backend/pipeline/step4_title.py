@@ -26,7 +26,14 @@ class TitleGenerator:
         prompt_files_to_use = prompt_files if prompt_files is not None else PROMPT_FILES
         with open(prompt_files_to_use['title'], 'r', encoding='utf-8') as f:
             self.title_prompt = f.read()
-        
+
+        # 语言要求：生成的标题统一使用英文（覆盖各分类的中文提示词）
+        self.title_prompt += (
+            "\n\n[LANGUAGE REQUIREMENT] Write every generated title in natural, "
+            "fluent English, regardless of the source language of the content. "
+            "Never output Chinese characters in the title."
+        )
+
         # 使用传入的metadata_dir或默认值
         if metadata_dir is None:
             metadata_dir = METADATA_DIR

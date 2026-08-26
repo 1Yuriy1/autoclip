@@ -7,6 +7,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.api.v1 import api_router
 from backend.api.v1.health import router as health_router
@@ -168,8 +169,18 @@ def create_app(mode: str = "web") -> FastAPI:
             }
         except Exception as e:
             return JSONResponse(
-                status_code=500, 
+                status_code=500,
                 content={"status": "error", "detail": str(e)}
             )
-    
+
+    # 挂载已构建的前端静态文件（如果存在）
+    # 前端使用 HashRouter + 相对 /api/v1 基址，因此与后端同源即可正常工作。
+    # 挂载在所有 API 路由之后，作为兜底，服务 index.html 与静态资源。
+    frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+    if os.path.isdir(frontend_dist):
+        app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+        logger.info(f"前端静态文件已挂载: {frontend_dist}")
+    else:
+        logger.warning(f"未找到前端构建产物，跳过静态挂载: {frontend_dist}")
+
     return app
