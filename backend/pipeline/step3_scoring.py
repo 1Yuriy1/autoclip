@@ -26,7 +26,14 @@ class ClipScorer:
         prompt_files_to_use = prompt_files if prompt_files is not None else PROMPT_FILES
         with open(prompt_files_to_use['recommendation'], 'r', encoding='utf-8') as f:
             self.recommendation_prompt = f.read()
-    
+
+        # 语言要求：推荐理由（用作视频描述）统一使用英文
+        self.recommendation_prompt += (
+            "\n\n[LANGUAGE REQUIREMENT] Write every recommend_reason in natural, "
+            "fluent English, regardless of the source language of the content. "
+            "Never output Chinese characters."
+        )
+
     def score_clips(self, timeline_data: List[Dict]) -> List[Dict]:
         """
         为切片评分 (新版：按块批量处理，并使用LLM进行综合评估)
