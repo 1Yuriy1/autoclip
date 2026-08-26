@@ -97,9 +97,16 @@ async def parse_youtube_video(
         import asyncio
         
         def extract_info_sync(url, browser):
+            # 解析 yt-dlp 可执行文件：优先 PATH，其次同环境的控制台脚本，最后回退到模块调用
+            import shutil
+            ytdlp_bin = shutil.which('yt-dlp') or os.path.join(os.path.dirname(sys.executable), 'yt-dlp')
+            if os.path.exists(ytdlp_bin):
+                cmd = [ytdlp_bin]
+            else:
+                # 回退：以当前 Python 解释器运行 yt_dlp 模块
+                cmd = [sys.executable, '-m', 'yt_dlp']
             # 构建 yt-dlp 命令
-            cmd = [
-                '/Users/zhoukk/autoclip/venv/bin/yt-dlp',
+            cmd += [
                 '--ignore-config',
                 '--no-warnings',
                 '--no-playlist',
@@ -132,7 +139,6 @@ async def parse_youtube_video(
                     capture_output=True,
                     text=True,
                     timeout=60,
-                    cwd='/Users/zhoukk/autoclip',
                     env=env
                 )
 
@@ -397,13 +403,11 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
         # 更新项目进度
         await update_project_download_progress(project_id, 30.0, "正在下载视频...")
         
-        # 设置下载选项
+        # 设置下载选项（视频优先，字幕单独尽力而为，避免字幕 429 阻断整个导入）
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            'writesubtitles': True,
-            'writeautomaticsub': True,  # 下载自动生成的字幕
-            'subtitleslangs': ['en', 'zh-Hans', 'zh', 'en-US', 'auto'],  # 英文和中文字幕，包括自动检测
-            'subtitlesformat': 'srt',
+            'writesubtitles': False,
+            'writeautomaticsub': False,
             'outtmpl': str(download_dir / '%(title)s.%(ext)s'),
             'noplaylist': True,
             'quiet': True,
@@ -412,7 +416,7 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
             'config_locations': [],
             'cachedir': False,
         }
-        
+
         if request.browser:
             ydl_opts['cookiesfrombrowser'] = (request.browser.lower(),)
 
@@ -420,14 +424,34 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
         yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', '').strip().lower()
         if yt_client_env in {"android", "ios", "tv"}:
             ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
-        
+
         def download_sync(url, ydl_opts):
             with sanitized_yt_env():
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     return ydl.download([url])
-        
+
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, download_sync, request.url, ydl_opts)
+
+        # 单独尽力下载字幕：失败（如 429）不影响导入，后续用本地 Whisper 兜底转写
+        def download_subs_best_effort(url, base_opts):
+            sub_opts = dict(base_opts)
+            sub_opts.update({
+                'skip_download': True,
+                'writesubtitles': True,
+                'writeautomaticsub': True,
+                'subtitleslangs': ['en', 'zh-Hans', 'zh', 'en-US'],
+                'subtitlesformat': 'srt',
+                'ignoreerrors': True,
+            })
+            try:
+                with sanitized_yt_env():
+                    with yt_dlp.YoutubeDL(sub_opts) as ydl:
+                        ydl.download([url])
+            except Exception as sub_err:
+                logger.warning(f"字幕下载失败（忽略，改用本地转写）: {sub_err}")
+
+        await loop.run_in_executor(None, download_subs_best_effort, request.url, ydl_opts)
         
         # 查找下载的文件
         video_files = list(download_dir.glob("*.mp4"))
