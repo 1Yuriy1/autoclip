@@ -222,7 +222,7 @@ const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) => {
       console.log('LLM配置保存成功，后端响应:', result)
     } catch (error) {
       console.error('LLM配置保存失败:', error)
-      const detail = error instanceof Error ? error.message : '未知错误'
+      const detail = error instanceof Error ? error.message : "Unknown error"
       throw new Error(`LLM配置保存失败: ${detail}`)
     }
   }
@@ -350,11 +350,11 @@ const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) => {
       if (result.success) {
         message.success('API连接测试成功!')
       } else {
-        message.error(`API连接测试失败: ${result.error || '未知错误'}`)
+        message.error(`API连接测试失败: ${result.error || "Unknown error"}`)
       }
     } catch (error) {
       console.error('API测试错误:', error)
-      const detail = error instanceof Error ? error.message : '网络错误'
+      const detail = error instanceof Error ? error.message : "Network error"
       message.error(`API连接测试失败: ${detail}`)
     }
   }
@@ -444,8 +444,8 @@ const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) => {
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               <Form.Item
                 name="llmProvider"
-                label="选择AI模型提供商"
-                rules={[{ required: true, message: '请选择AI模型提供商' }]}
+                label="Choose an AI provider"
+                rules={[{ required: true, message: "Choose an AI provider" }]}
                 style={{ marginBottom: '12px' }}
               >
                 <Select size="middle" placeholder="选择提供商">
@@ -604,7 +604,7 @@ const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) => {
                         label="选择模型大小"
                         style={{ marginBottom: '12px' }}
                       >
-                        <Select size="middle" placeholder="选择模型">
+                        <Select size="middle" placeholder="Choose a model">
                           <Option value="tiny">Tiny (39MB) - 最快速度</Option>
                           <Option value="base">Base (74MB) - 平衡选择 (推荐)</Option>
                           <Option value="small">Small (244MB) - 较好准确度</Option>

@@ -46,6 +46,8 @@ async def upload_files(
     srt_file: Optional[UploadFile] = File(None),
     project_name: str = Form(...),
     video_category: Optional[str] = Form(None),
+    output_format: str = Form('youtube_shorts'),
+    shorts_layout: str = Form('blur_pad'),
     project_service: ProjectService = Depends(get_project_service)
 ):
     """Upload video file and optional subtitle file to create a new project. If no subtitle is provided, Whisper will automatically generate one."""
@@ -58,6 +60,12 @@ async def upload_files(
         if srt_file and not srt_file.filename.lower().endswith('.srt'):
             raise HTTPException(status_code=400, detail="Invalid subtitle file format")
         
+        from ...utils.output_profile import build_output_profile
+        try:
+            output_profile = build_output_profile(output_format, shorts_layout)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         # 创建项目数据
         subtitle_info = srt_file.filename if srt_file else "Whisper自动生成"
         project_data = ProjectCreate(
@@ -70,7 +78,8 @@ async def upload_files(
             settings={
                 "video_category": video_category or "knowledge",
                 "video_file": video_file.filename,
-                "srt_file": subtitle_info
+                "srt_file": subtitle_info,
+                "output_profile": output_profile,
             }
         )
         
@@ -159,7 +168,8 @@ async def upload_files(
             "settings": {
                 "video_category": video_category or "knowledge",
                 "video_file": video_file.filename,
-                "srt_file": subtitle_info
+                "srt_file": subtitle_info,
+                "output_profile": output_profile,
             },  # 只包含可序列化的数据
             "created_at": project.created_at,
             "updated_at": project.updated_at,
@@ -469,15 +479,15 @@ async def start_processing(
             message="开始视频处理流程"
         )
         
-        # 延迟导入，避免过早触发celery_app导入链
-        from backend.tasks.processing import process_video_pipeline
-        
-        # 提交Celery任务
-        celery_task = process_video_pipeline.delay(
+        # 统一任务提交入口：Web 模式使用 Celery，桌面模式使用本地后台线程。
+        from backend.utils.task_submission_utils import submit_video_pipeline_task
+        submission = submit_video_pipeline_task(
             project_id=project_id,
             input_video_path=str(video_path),
-            input_srt_path=str(srt_path) if srt_path else None
+            input_srt_path=str(srt_path) if srt_path else None,
         )
+        if not submission.get("success"):
+            raise RuntimeError(submission.get("error") or "Failed to submit processing task")
         
         # 创建处理任务记录
         task_result = processing_service._create_processing_task(
@@ -489,7 +499,7 @@ async def start_processing(
             "message": "Processing started successfully",
             "project_id": project_id,
             "task_id": task_result.id,
-            "celery_task_id": celery_task.id,
+            "celery_task_id": submission["task_id"],
             "status": "processing"
         }
         
@@ -641,15 +651,15 @@ async def retry_processing(
         # 字幕文件是可选的
         srt_path_str = str(srt_path) if srt_path.exists() else None
         
-        # 延迟导入，避免过早触发celery_app导入链
-        from backend.tasks.processing import process_video_pipeline
-        
-        # 提交Celery任务 - 使用字符串类型的project_id
-        celery_task = process_video_pipeline.delay(
+        # 统一任务提交入口：Web 模式使用 Celery，桌面模式使用本地后台线程。
+        from backend.utils.task_submission_utils import submit_video_pipeline_task
+        submission = submit_video_pipeline_task(
             project_id=project_id,
             input_video_path=str(video_path),
-            input_srt_path=srt_path_str
+            input_srt_path=srt_path_str,
         )
+        if not submission.get("success"):
+            raise RuntimeError(submission.get("error") or "Failed to submit processing retry")
         
         # 创建新的处理任务记录
         from ...models.task import TaskType
@@ -659,14 +669,14 @@ async def retry_processing(
         )
         
         # 更新任务的Celery任务ID
-        task_result.celery_task_id = celery_task.id
+        task_result.celery_task_id = submission["task_id"]
         processing_service.db.commit()
         
         return {
             "message": "Processing retry started successfully",
             "project_id": project_id,
             "task_id": task_result.id,
-            "celery_task_id": celery_task.id,
+            "celery_task_id": submission["task_id"],
             "status": "processing"
         }
         

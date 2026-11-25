@@ -15,10 +15,27 @@ from ..core.shared_config import PROMPT_FILES, METADATA_DIR
 
 logger = logging.getLogger(__name__)
 
+SHORTS_TIMELINE_INSTRUCTION = """
+
+## YouTube Shorts 模式（优先级最高，覆盖上文的长视频时长建议）
+- 每个输出片段必须大于 0 秒且不得超过 180 秒。
+- 目标时长为 30-90 秒；只有保持语义完整确有必要时才可延长，但仍不得超过 180 秒。
+- 从最早能理解上下文的句子开始，在自然结论、笑点落点或明确转折处结束。
+- 不要为了满足旧的最小时长要求而合并相邻话题；长话题应拆分为多个独立完整片段。
+"""
+
+
+def _is_shorts_profile(output_profile: Optional[Dict]) -> bool:
+    if not output_profile:
+        return False
+    value = str(output_profile.get('format') or output_profile.get('aspect_ratio') or '').lower()
+    return value in {'youtube_shorts', 'shorts', 'short', '9:16', '9/16', 'vertical', 'portrait'}
+
 class TimelineExtractor:
     """从大纲和SRT字幕中提取精确时间线"""
     
-    def __init__(self, metadata_dir: Path = None, prompt_files: Dict = None):
+    def __init__(self, metadata_dir: Path = None, prompt_files: Dict = None,
+                 output_profile: Optional[Dict] = None):
         self.llm_client = LLMClient()
         self.text_processor = TextProcessor()
         
@@ -31,6 +48,8 @@ class TimelineExtractor:
         prompt_files_to_use = prompt_files if prompt_files is not None else PROMPT_FILES
         with open(prompt_files_to_use['timeline'], 'r', encoding='utf-8') as f:
             self.timeline_prompt = f.read()
+        if _is_shorts_profile(output_profile):
+            self.timeline_prompt += SHORTS_TIMELINE_INSTRUCTION
             
         # SRT块的目录
         self.srt_chunks_dir = self.metadata_dir / "step1_srt_chunks"
@@ -338,14 +357,16 @@ class TimelineExtractor:
         with open(input_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-def run_step2_timeline(outline_path: Path, metadata_dir: Path = None, output_path: Optional[Path] = None, prompt_files: Dict = None) -> List[Dict]:
+def run_step2_timeline(outline_path: Path, metadata_dir: Path = None,
+                       output_path: Optional[Path] = None, prompt_files: Dict = None,
+                       output_profile: Optional[Dict] = None) -> List[Dict]:
     """
     运行Step 2: 时间点提取
     """
     if metadata_dir is None:
         metadata_dir = METADATA_DIR
         
-    extractor = TimelineExtractor(metadata_dir, prompt_files)
+    extractor = TimelineExtractor(metadata_dir, prompt_files, output_profile=output_profile)
     
     # 加载大纲
     with open(outline_path, 'r', encoding='utf-8') as f:

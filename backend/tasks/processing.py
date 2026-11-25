@@ -123,9 +123,15 @@ def process_video_pipeline(
             # 简化的进度系统不需要复杂的回调函数
             # 新的进度系统会在流水线内部自动发送进度事件
             
-            # 使用简化的Pipeline适配器
+            # 使用项目级处理配置，避免 API 进程与 Celery worker 的环境变量不一致。
             from backend.services.simple_pipeline_adapter import create_simple_pipeline_adapter
-            pipeline_adapter = create_simple_pipeline_adapter(str(project_id), str(task.id))
+            project = db.query(Project).filter(Project.id == project_id).first()
+            processing_config = (project.processing_config or {}) if project else {}
+            pipeline_adapter = create_simple_pipeline_adapter(
+                str(project_id),
+                str(task.id),
+                processing_config=processing_config,
+            )
             
             # 执行Pipeline处理 - 使用异步包装器
             import asyncio
@@ -134,7 +140,7 @@ def process_video_pipeline(
             # 检查处理结果
             if result.get("status") == "failed":
                 # 处理失败
-                error_msg = result.get("message", "处理失败")
+                error_msg = result.get("message") or result.get("error") or "Processing failed"
                 task.status = TaskStatus.FAILED
                 task.error_message = error_msg
                 task.result_data = result

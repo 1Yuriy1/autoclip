@@ -1,0 +1,16 @@
+{
+  "test": "AutoClip LLMClient live JSON highlight analysis",
+  "status": "passed",
+  "endpoint": "https://api.concentrate.ai/v1/",
+  "model": "gpt-4o-mini",
+  "source": "fictional transcript; no real source footage",
+  "result": [
+    {
+      "start_time": "00:09",
+      "end_time": "00:12",
+      "title": "Epic Jump Landing",
+      "hook": "An unexpected landing on a boat!",
+      "score": 0.9
+    }
+  ]
+}

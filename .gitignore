@@ -144,3 +144,14 @@ control/
 # YouTube uploader OAuth secrets (do not commit)
 scripts/client_secret.json
 scripts/token.json
+
+# Local working data (kept off GitHub: media, renders, models, per-run folders)
+queue/
+ready/
+output/
+checkpoints/
+data/whisper-models/
+data/upload-kits/
+data/music/
+shorts-studio-sandbox/workspace-user/
+shorts-studio-sandbox/workspace/

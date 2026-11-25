@@ -6,6 +6,7 @@ import { Clip } from '../store/useProjectStore'
 import BilibiliManager from './BilibiliManager'
 import EditableTitle from './EditableTitle'
 import './ClipCard.css'
+import UploadKitModal from './UploadKitModal'
 
 interface ClipCardProps {
   clip: Clip
@@ -23,6 +24,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
   onClipUpdate
 }) => {
   const [showPlayer, setShowPlayer] = useState(false)
+  const [showUploadKit, setShowUploadKit] = useState(false)
   const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null)
   const [showBilibiliManager, setShowBilibiliManager] = useState(false)
   const playerRef = useRef<ReactPlayer>(null)
@@ -62,8 +64,8 @@ const ClipCard: React.FC<ClipCardProps> = ({
       // 直接调用API下载方法，它会处理文件名
       await onDownload(clip.id)
     } catch (error) {
-      console.error('下载失败:', error)
-      message.error('下载失败')
+      console.error("Download failed:", error)
+      message.error("Download failed.")
     }
   }
 
@@ -147,7 +149,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
       return clip.outline
     }
     
-    return '暂无内容要点'
+    return "No highlights available."
   }
 
   const textRef = useRef<HTMLDivElement>(null)
@@ -291,7 +293,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                 alignItems: 'flex-start'
               }}>
                 <EditableTitle
-                  title={clip.title || clip.generated_title || '未命名片段'}
+                  title={clip.title || clip.generated_title || "Untitled clip"}
                   clipId={clip.id}
                   onTitleUpdate={handleTitleUpdate}
                   style={{ 
@@ -362,7 +364,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                   background: 'transparent'
                 }}
               >
-                播放
+                Play
               </Button>
               <Button
                 type="text"
@@ -379,13 +381,13 @@ const ClipCard: React.FC<ClipCardProps> = ({
                   background: 'transparent'
                 }}
               >
-                下载
+                Download
               </Button>
               <Button
                 type="text"
                 size="small"
                 icon={<UploadOutlined />}
-                onClick={() => message.info('开发中，敬请期待', 3)}
+                onClick={() => setShowUploadKit(true)}
                 style={{
                   color: 'var(--ac-sub)',
                   border: '1px solid var(--ac-line)',
@@ -396,27 +398,28 @@ const ClipCard: React.FC<ClipCardProps> = ({
                   background: 'transparent'
                 }}
               >
-                投稿
+                Upload kit
               </Button>
             </div>
           </div>
         </Card>
 
+      <UploadKitModal clipId={clip.id} duration={calculateDuration(clip.start_time, clip.end_time)} open={showUploadKit} onClose={() => setShowUploadKit(false)} onDownload={handleDownloadWithTitle}/>
       {/* 视频播放模态框 */}
       <Modal
         open={showPlayer}
         onCancel={handleClosePlayer}
         footer={[
           <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={handleDownloadWithTitle}>
-            下载视频
+            Download video
           </Button>,
           <Button 
             key="upload" 
             type="default" 
             icon={<UploadOutlined />} 
-            onClick={() => message.info('开发中，敬请期待', 3)}
+            onClick={() => setShowUploadKit(true)}
           >
-            投稿到B站
+            Publish to Bilibili
           </Button>
         ]}
         width={800}
@@ -439,7 +442,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
             paddingRight: '30px' // 为关闭按钮留出空间
           }}>
             <EditableTitle
-              title={clip.title || clip.generated_title || '视频预览'}
+              title={clip.title || clip.generated_title || "Video preview"}
               clipId={clip.id}
               onTitleUpdate={(newTitle) => {
                 // 更新clip的标题
@@ -494,7 +497,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
         onClose={() => setShowBilibiliManager(false)}
         projectId={projectId || ''}
         clipIds={[clip.id]}
-        clipTitles={[clip.title || clip.generated_title || '视频片段']}
+        clipTitles={[clip.title || clip.generated_title || "Video clips"]}
         onUploadSuccess={() => {
           // 投稿成功后可以刷新数据或显示提示
           console.log('投稿成功')

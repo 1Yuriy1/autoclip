@@ -21,6 +21,7 @@ cryptography
 qrcode[pil]
 yt-dlp>=2024.12.13
 pysrt
+Pillow>=10.1
 psutil
 pytz
 

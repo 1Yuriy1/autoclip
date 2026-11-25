@@ -71,7 +71,7 @@ const PipelineControl: React.FC<PipelineControlProps> = ({
       }
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : '未知错误');
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -170,13 +170,13 @@ const PipelineControl: React.FC<PipelineControlProps> = ({
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'processing':
-        return { color: 'processing', text: '处理中', icon: <PlayCircleOutlined /> };
+        return { color: 'processing', text: "Processing", icon: <PlayCircleOutlined /> };
       case 'completed':
-        return { color: 'success', text: '已完成', icon: <CheckCircleOutlined /> };
+        return { color: 'success', text: "Completed", icon: <CheckCircleOutlined /> };
       case 'failed':
-        return { color: 'error', text: '失败', icon: <CloseCircleOutlined /> };
+        return { color: 'error', text: "Failed", icon: <CloseCircleOutlined /> };
       case 'pending':
-        return { color: 'default', text: '等待中', icon: <ClockCircleOutlined /> };
+        return { color: 'default', text: "Waiting", icon: <ClockCircleOutlined /> };
       case 'paused':
         return { color: 'warning', text: '已暂停', icon: <PauseCircleOutlined /> };
       default:
@@ -190,13 +190,13 @@ const PipelineControl: React.FC<PipelineControlProps> = ({
       case 'running':
         return { color: 'processing', text: '运行中' };
       case 'completed':
-        return { color: 'success', text: '已完成' };
+        return { color: 'success', text: "Completed" };
       case 'failed':
-        return { color: 'error', text: '失败' };
+        return { color: 'error', text: "Failed" };
       case 'pending':
-        return { color: 'default', text: '等待中' };
+        return { color: 'default', text: "Waiting" };
       case 'cancelled':
-        return { color: 'warning', text: '已取消' };
+        return { color: 'warning', text: "Canceled" };
       default:
         return { color: 'default', text: status };
     }
@@ -225,7 +225,7 @@ const PipelineControl: React.FC<PipelineControlProps> = ({
           showIcon
           action={
             <Button size="small" onClick={fetchPipelineStatus}>
-              重试
+              Retry
             </Button>
           }
         />
@@ -295,7 +295,7 @@ const PipelineControl: React.FC<PipelineControlProps> = ({
             icon={<EyeOutlined />}
             onClick={() => setStatusModalVisible(true)}
           >
-            查看详情
+            View details
           </Button>
         </Space>
 
@@ -319,14 +319,14 @@ const PipelineControl: React.FC<PipelineControlProps> = ({
             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#faad14' }}>
               {pipelineStatus.completed_tasks}
             </div>
-            <div style={{ fontSize: '12px', color: '#666' }}>已完成</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>Completed</div>
           </div>
           
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff4d4f' }}>
               {pipelineStatus.failed_tasks}
             </div>
-            <div style={{ fontSize: '12px', color: '#666' }}>失败</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>Failed</div>
           </div>
         </div>
 
@@ -397,7 +397,7 @@ const PipelineControl: React.FC<PipelineControlProps> = ({
                         {task.step_details && <div>详情: {task.step_details}</div>}
                         <div>创建时间: {new Date(task.created_at).toLocaleString()}</div>
                         {task.started_at && (
-                          <div>开始时间: {new Date(task.started_at).toLocaleString()}</div>
+                          <div>Start: {new Date(task.started_at).toLocaleString()}</div>
                         )}
                         {task.completed_at && (
                           <div>完成时间: {new Date(task.completed_at).toLocaleString()}</div>

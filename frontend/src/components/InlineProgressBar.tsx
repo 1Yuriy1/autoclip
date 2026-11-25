@@ -19,12 +19,12 @@ interface ProgressData {
 
 // 流水线步骤配置
 const PIPELINE_STEPS = [
-  { id: 1, name: '大纲提取', description: '从视频转写文本中提取结构性大纲' },
-  { id: 2, name: '时间定位', description: '基于SRT字幕定位话题时间区间' },
-  { id: 3, name: '内容评分', description: '多维度评估片段质量与传播潜力' },
-  { id: 4, name: '标题生成', description: '为高分片段生成吸引人的标题' },
-  { id: 5, name: '主题聚类', description: '将相关片段聚合为合集推荐' },
-  { id: 6, name: '视频切割', description: '使用FFmpeg生成切片与合集视频' }
+  { id: 1, name: "Outline extraction", description: "Extracting a structured outline from the transcript" },
+  { id: 2, name: "Timing detection", description: "Finding topic time ranges from SRT captions" },
+  { id: 3, name: "Content scoring", description: "Evaluating clip quality and sharing potential" },
+  { id: 4, name: "Title generation", description: "Creating engaging titles for top clips" },
+  { id: 5, name: "Topic grouping", description: "Grouping related clips into collections" },
+  { id: 6, name: "Video clipping", description: "Creating clips and collection videos with FFmpeg" }
 ];
 
 export const InlineProgressBar: React.FC<InlineProgressBarProps> = ({

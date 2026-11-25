@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 def _is_desktop_mode() -> bool:
-    return os.getenv("AUTOCLIP_DESKTOP_MODE", "").lower() in {"1", "true", "yes"}
+    explicit_desktop = os.getenv("AUTOCLIP_DESKTOP_MODE", "").lower() in {"1", "true", "yes"}
+    return explicit_desktop or os.getenv("AUTOCLIP_MODE", "").lower() == "desktop"
 
 
 def _run_pipeline_locally(project_id: str, input_video_path: str, input_srt_path: str) -> Dict[str, Any]:

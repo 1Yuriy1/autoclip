@@ -26,12 +26,12 @@ const ProcessingPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   const steps = [
-    { title: '大纲提取', description: '从视频转写文本中提取结构性大纲' },
-    { title: '时间定位', description: '基于SRT字幕定位话题时间区间' },
-    { title: '内容评分', description: '多维度评估片段质量与传播潜力' },
-    { title: '标题生成', description: '为高分片段生成吸引人的标题' },
-    { title: '主题聚类', description: '将相关片段聚合为合集推荐' },
-    { title: '视频切割', description: '使用FFmpeg生成切片与合集视频' }
+    { title: "Outline extraction", description: "Extracting a structured outline from the transcript" },
+    { title: "Timing detection", description: "Finding topic time ranges from SRT captions" },
+    { title: "Content scoring", description: "Evaluating clip quality and sharing potential" },
+    { title: "Title generation", description: "Creating engaging titles for top clips" },
+    { title: "Topic grouping", description: "Grouping related clips into collections" },
+    { title: "Video clipping", description: "Creating clips and collection videos with FFmpeg" }
   ]
 
   useEffect(() => {
@@ -61,7 +61,7 @@ const ProcessingPage: React.FC = () => {
         await startProcessing()
       }
     } catch (error) {
-      message.error('加载项目失败')
+      message.error("Could not load projects.")
       console.error('Load project error:', error)
     } finally {
       setLoading(false)
@@ -75,7 +75,7 @@ const ProcessingPage: React.FC = () => {
       await projectApi.startProcessing(id)
       message.success('开始处理项目')
     } catch (error) {
-      message.error('启动处理失败')
+      message.error("Could not start processing.")
       console.error('Start processing error:', error)
     }
   }
@@ -157,7 +157,7 @@ const ProcessingPage: React.FC = () => {
             icon={<ArrowLeftOutlined />} 
             onClick={() => navigate('/')}
           >
-            返回首页
+            Back to home
           </Button>
         </div>
 
@@ -170,7 +170,7 @@ const ProcessingPage: React.FC = () => {
 
         {status?.status === 'error' && (
           <Alert
-            message="处理失败"
+            message="Processing failed"
             description={
               <div>
                 <p>{status.error_message || '处理过程中发生未知错误'}</p>
@@ -184,10 +184,10 @@ const ProcessingPage: React.FC = () => {
             action={
               <Space>
                 <Button size="small" onClick={() => window.location.reload()}>
-                  刷新页面
+                  Refresh page
                 </Button>
                 <Button size="small" onClick={() => navigate('/')}>
-                  返回首页
+                  Back to home
                 </Button>
               </Space>
             }
@@ -199,7 +199,7 @@ const ProcessingPage: React.FC = () => {
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <Text strong>总体进度</Text>
+                  <Text strong>Overall progress</Text>
                   <Text>{Math.round(status.progress)}%</Text>
                 </div>
                 <Progress 
@@ -238,7 +238,7 @@ const ProcessingPage: React.FC = () => {
 
         {status?.status === 'completed' && (
           <Alert
-            message="处理完成"
+            message="Processing complete"
             description="视频已成功处理完成，正在跳转到项目详情页..."
             type="success"
             showIcon

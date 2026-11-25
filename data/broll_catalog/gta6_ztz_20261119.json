@@ -1,0 +1,412 @@
+{
+ "source": "data/uploads/gta6_ztz_20261119.mp4",
+ "crop": "crop=529:940:695:0",
+ "note": "Hand-tagged from 10-second contact sheets on 2026-11-24. Spans avoid menus, maps, black frames and dark cutscenes. Times in seconds. The crop leaves out the bottom of the frame, where the game shows its subtitles (which swear) and button prompts. Scanned second by second on 2026-11-25; every menu, banner and prompt stretch is cut out.",
+ "scenes": [
+  {
+   "start": 132,
+   "end": 226,
+   "tags": [
+    "boat",
+    "water",
+    "speed",
+    "action",
+    "scenic",
+    "vacation",
+    "sunny",
+    "highlight",
+    "cinematic",
+    "trailer"
+   ],
+   "why": "blur and a prompt after 226"
+  },
+  {
+   "start": 242,
+   "end": 260,
+   "tags": [
+    "boat",
+    "water",
+    "ocean",
+    "scenic",
+    "vacation",
+    "calm",
+    "cruise",
+    "normal"
+   ]
+  },
+  {
+   "start": 264,
+   "end": 354,
+   "tags": [
+    "boat",
+    "water",
+    "ocean",
+    "scenic",
+    "vacation",
+    "calm",
+    "cruise",
+    "normal"
+   ],
+   "why": "a prompt pops up 261-263"
+  },
+  {
+   "start": 456,
+   "end": 476,
+   "tags": [
+    "boat",
+    "calm",
+    "scenic",
+    "quiet"
+   ]
+  },
+  {
+   "start": 481,
+   "end": 499,
+   "tags": [
+    "walking",
+    "normal",
+    "quiet",
+    "dock"
+   ]
+  },
+  {
+   "start": 521,
+   "end": 590,
+   "tags": [
+    "sneaking",
+    "stealth",
+    "slow",
+    "bushes",
+    "boring",
+    "stuck"
+   ]
+  },
+  {
+   "start": 611,
+   "end": 650,
+   "tags": [
+    "sneaking",
+    "truck",
+    "camp",
+    "normal"
+   ],
+   "why": "weapon menu 607-609"
+  },
+  {
+   "start": 661,
+   "end": 694,
+   "tags": [
+    "action",
+    "chaos",
+    "jump"
+   ]
+  },
+  {
+   "start": 736,
+   "end": 759,
+   "tags": [
+    "fight",
+    "chaos"
+   ],
+   "why": "mostly a shack wall; use only for fight lines"
+  },
+  {
+   "start": 816,
+   "end": 842,
+   "tags": [
+    "gunfight",
+    "action",
+    "chaos"
+   ]
+  },
+  {
+   "start": 846,
+   "end": 854,
+   "tags": [
+    "running",
+    "action",
+    "chase"
+   ],
+   "why": "menu at 855"
+  },
+  {
+   "start": 916,
+   "end": 956,
+   "tags": [
+    "plane",
+    "flying",
+    "insane",
+    "epic",
+    "action",
+    "highlight",
+    "viral",
+    "incredible"
+   ]
+  },
+  {
+   "start": 986,
+   "end": 1044,
+   "tags": [
+    "plane",
+    "landing",
+    "cinematic",
+    "moody",
+    "trailer",
+    "movie",
+    "storm"
+   ]
+  },
+  {
+   "start": 1266,
+   "end": 1320,
+   "tags": [
+    "night",
+    "drive",
+    "quiet",
+    "calm",
+    "normal",
+    "sunset",
+    "movie"
+   ]
+  },
+  {
+   "start": 1401,
+   "end": 1439,
+   "tags": [
+    "phone",
+    "scrolling",
+    "night",
+    "drive",
+    "social"
+   ]
+  },
+  {
+   "start": 1441,
+   "end": 1479,
+   "tags": [
+    "night",
+    "city",
+    "quiet",
+    "calm",
+    "chill",
+    "drive",
+    "hours"
+   ]
+  },
+  {
+   "start": 1596,
+   "end": 1669,
+   "tags": [
+    "phone",
+    "call",
+    "relationship",
+    "people",
+    "talking"
+   ]
+  },
+  {
+   "start": 1721,
+   "end": 1769,
+   "tags": [
+    "funny",
+    "people",
+    "talking"
+   ]
+  },
+  {
+   "start": 1801,
+   "end": 1805,
+   "tags": [
+    "home",
+    "chores",
+    "indoor",
+    "routine"
+   ],
+   "why": "milk-carton close-up after 1805"
+  },
+  {
+   "start": 1891,
+   "end": 1900,
+   "tags": [
+    "drive",
+    "day",
+    "normal",
+    "everyday"
+   ]
+  },
+  {
+   "start": 1905,
+   "end": 1915,
+   "tags": [
+    "drive",
+    "day",
+    "normal",
+    "everyday"
+   ],
+   "why": "KeyLento location banner 1901-1904"
+  },
+  {
+   "start": 1921,
+   "end": 1936,
+   "tags": [
+    "shop",
+    "guns",
+    "normal",
+    "everyday"
+   ]
+  },
+  {
+   "start": 1941,
+   "end": 1985,
+   "tags": [
+    "shop",
+    "guns",
+    "job",
+    "work"
+   ]
+  },
+  {
+   "start": 2236,
+   "end": 2274,
+   "tags": [
+    "drive",
+    "day",
+    "city",
+    "normal",
+    "everyday",
+    "routine",
+    "session",
+    "car"
+   ],
+   "why": "the weapon wheel opens near 2278"
+  },
+  {
+   "start": 2319,
+   "end": 2322.6,
+   "tags": [
+    "phone",
+    "scrolling",
+    "social",
+    "linkedin",
+    "job",
+    "text",
+    "posts"
+   ],
+   "why": "home screen and contacts; 2323-2325.5 is a text thread that swears"
+  },
+  {
+   "start": 2325.6,
+   "end": 2329.5,
+   "tags": [
+    "phone",
+    "scrolling",
+    "social",
+    "linkedin",
+    "job",
+    "text",
+    "posts"
+   ]
+  },
+  {
+   "start": 2414,
+   "end": 2438,
+   "tags": [
+    "apartment",
+    "rent",
+    "money",
+    "indoor",
+    "people",
+    "talking"
+   ],
+   "why": "menus at 2408 and 2412"
+  },
+  {
+   "start": 2441,
+   "end": 2462,
+   "tags": [
+    "indoor",
+    "normal",
+    "searching",
+    "boring"
+   ]
+  },
+  {
+   "start": 2466,
+   "end": 2491,
+   "tags": [
+    "stuck",
+    "waiting",
+    "boring",
+    "routine",
+    "hours"
+   ]
+  },
+  {
+   "start": 2609,
+   "end": 2640,
+   "tags": [
+    "drive",
+    "sunny",
+    "vacation",
+    "scenic",
+    "cruise",
+    "cop",
+    "police",
+    "chase",
+    "car",
+    "stealing"
+   ],
+   "why": "smashes a car window and drives off"
+  },
+  {
+   "start": 2671,
+   "end": 2675,
+   "tags": [
+    "stuck",
+    "hiding",
+    "waiting",
+    "stealth",
+    "cop",
+    "police",
+    "chase"
+   ]
+  },
+  {
+   "start": 2691,
+   "end": 2704,
+   "tags": [
+    "stuck",
+    "hiding",
+    "waiting",
+    "stealth",
+    "cop",
+    "police",
+    "chase"
+   ],
+   "why": "blurred weapon menu 2676-2690"
+  },
+  {
+   "start": 2706,
+   "end": 2736,
+   "tags": [
+    "fence",
+    "stuck",
+    "climbing",
+    "fail",
+    "funny"
+   ]
+  },
+  {
+   "start": 2826,
+   "end": 2888,
+   "tags": [
+    "drive",
+    "day",
+    "speed",
+    "normal",
+    "everyday",
+    "car"
+   ]
+  }
+ ]
+}

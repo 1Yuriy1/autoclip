@@ -37,6 +37,9 @@ services:
       - LOG_LEVEL=INFO
       - AUTOCLIP_YT_CLIENT=android
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # 竖屏短视频输出：'9:16' 开启竖屏，'original' 恢复横屏；layout 可选 crop / blur_pad
+      - PROCESSING_CLIP_ASPECT_RATIO=${PROCESSING_CLIP_ASPECT_RATIO:-9:16}
+      - PROCESSING_SHORT_FORM_LAYOUT=${PROCESSING_SHORT_FORM_LAYOUT:-blur_pad}
     depends_on:
       redis:
         condition: service_healthy
@@ -66,6 +69,9 @@ services:
       - LOG_LEVEL=INFO
       - AUTOCLIP_YT_CLIENT=android
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # 竖屏短视频输出：'9:16' 开启竖屏，'original' 恢复横屏；layout 可选 crop / blur_pad
+      - PROCESSING_CLIP_ASPECT_RATIO=${PROCESSING_CLIP_ASPECT_RATIO:-9:16}
+      - PROCESSING_SHORT_FORM_LAYOUT=${PROCESSING_SHORT_FORM_LAYOUT:-blur_pad}
     command: celery -A backend.core.celery_app worker --loglevel=info --concurrency=2 -Q celery,processing,video,notification,upload
     depends_on:
       redis:
@@ -91,6 +97,9 @@ services:
       - LOG_LEVEL=INFO
       - AUTOCLIP_YT_CLIENT=android
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # 竖屏短视频输出：'9:16' 开启竖屏，'original' 恢复横屏；layout 可选 crop / blur_pad
+      - PROCESSING_CLIP_ASPECT_RATIO=${PROCESSING_CLIP_ASPECT_RATIO:-9:16}
+      - PROCESSING_SHORT_FORM_LAYOUT=${PROCESSING_SHORT_FORM_LAYOUT:-blur_pad}
     command: celery -A backend.core.celery_app beat --loglevel=info
     depends_on:
       redis:

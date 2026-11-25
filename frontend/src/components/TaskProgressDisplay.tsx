@@ -33,7 +33,7 @@ export const TaskProgressDisplay: React.FC<TaskProgressDisplayProps> = ({
     },
     onTaskComplete: (state) => {
       console.log('任务完成:', state);
-      message.success('任务处理完成！');
+      message.success("Task completed!");
       onTaskComplete?.(state);
     },
     onTaskFailed: (state) => {
@@ -57,7 +57,7 @@ export const TaskProgressDisplay: React.FC<TaskProgressDisplayProps> = ({
   const getPhaseText = (phase: string) => {
     switch (phase) {
       case 'transcribe': return '语音识别';
-      case 'analyze': return '内容分析';
+      case 'analyze': return "Analyzing content";
       case 'clip': return '视频切片';
       case 'encode': return '视频编码';
       case 'upload': return '上传处理';
@@ -77,10 +77,10 @@ export const TaskProgressDisplay: React.FC<TaskProgressDisplayProps> = ({
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'PENDING': return '等待中';
-      case 'PROGRESS': return '进行中';
-      case 'DONE': return '已完成';
-      case 'FAIL': return '失败';
+      case 'PENDING': return "Waiting";
+      case 'PROGRESS': return "In progress";
+      case 'DONE': return "Completed";
+      case 'FAIL': return "Failed";
       default: return status;
     }
   };
@@ -107,7 +107,7 @@ export const TaskProgressDisplay: React.FC<TaskProgressDisplayProps> = ({
       style={{ marginBottom: 16 }}
       title={
         <Space>
-          <Text strong>任务进度</Text>
+          <Text strong>Task progress</Text>
           <Tag color={getStatusColor(taskState.status)}>
             {getStatusText(taskState.status)}
           </Tag>
@@ -164,7 +164,7 @@ export const TaskProgressDisplay: React.FC<TaskProgressDisplayProps> = ({
           }}>
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               <div>
-                <Text strong>任务ID:</Text> {taskState.task_id}
+                <Text strong>Task ID:</Text> {taskState.task_id}
               </div>
               <div>
                 <Text strong>序列号:</Text> {taskState.seq}
@@ -173,7 +173,7 @@ export const TaskProgressDisplay: React.FC<TaskProgressDisplayProps> = ({
                 <Text strong>时间戳:</Text> {new Date(taskState.ts * 1000).toLocaleString()}
               </div>
               <div>
-                <Text strong>最后更新:</Text> {new Date(taskState.last_updated).toLocaleString()}
+                <Text strong>Last updated:</Text> {new Date(taskState.last_updated).toLocaleString()}
               </div>
               {taskState.meta && (
                 <div>

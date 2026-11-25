@@ -36,11 +36,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from backend.utils.output_profile import build_output_profile
+from backend.utils.video_processor import VideoProcessor, resolve_reframe
+
 PROJECTS_DIR = REPO_ROOT / "data" / "projects"
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 CLIENT_SECRET = Path(__file__).resolve().parent / "client_secret.json"
@@ -103,29 +108,33 @@ def find_clip_file(proj: Path, clip: dict) -> Path | None:
 
 
 def make_vertical(src: Path, dst: Path) -> Path:
-    """Convert a 16:9 clip to a 1080x1920 Short with a blurred background."""
+    """Return a validated Short, converting through the shared renderer if needed."""
+    source_errors = VideoProcessor.validate_youtube_short(src)
+    if not source_errors:
+        print(f"    already Shorts-compatible: {src.name}")
+        return src
+    if any('时长' in error and '超过' in error for error in source_errors):
+        die(f"{src.name} is too long for YouTube Shorts: {'; '.join(source_errors)}")
+
     dst.parent.mkdir(parents=True, exist_ok=True)
-    if dst.exists():
-        return dst
-    vf = (
-        "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
-        "crop=1080:1920,gblur=sigma=20[bg];"
-        "[0:v]scale=1080:-2[fg];"
-        "[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1[v]"
-    )
-    cmd = [
-        "ffmpeg", "-y", "-i", str(src),
-        "-filter_complex", vf,
-        "-map", "[v]", "-map", "0:a?",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-        "-c:a", "aac", "-b:a", "128k",
-        "-movflags", "+faststart",
-        str(dst),
-    ]
+    if dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime:
+        cached_errors = VideoProcessor.validate_youtube_short(dst)
+        if not cached_errors:
+            print(f"    using validated cached Short: {dst.name}")
+            return dst
+
+    profile = build_output_profile('youtube_shorts', 'blur_pad')
+    reframe = resolve_reframe(profile)
+    if reframe is None:
+        die("could not resolve the YouTube Shorts output profile")
+
     print(f"    converting -> 9:16 vertical: {dst.name}")
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        die(f"ffmpeg failed for {src.name}:\n{res.stderr[-800:]}")
+    if not VideoProcessor.reframe_video(src, dst, reframe):
+        die(f"ffmpeg failed for {src.name}")
+
+    output_errors = VideoProcessor.validate_youtube_short(dst)
+    if output_errors:
+        die(f"converted file failed Shorts validation: {'; '.join(output_errors)}")
     return dst
 
 

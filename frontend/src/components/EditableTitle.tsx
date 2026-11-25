@@ -64,12 +64,12 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
     const trimmedValue = editValue.trim()
     
     if (!trimmedValue) {
-      message.error('标题不能为空')
+      message.error("Title cannot be empty.")
       return
     }
     
     if (trimmedValue.length > maxLength) {
-      message.error(`标题长度不能超过${maxLength}个字符`)
+      message.error(`Title must not exceed ${maxLength} characters`)
       return
     }
     
@@ -81,13 +81,13 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
     setLoading(true)
     try {
       await projectApi.updateClipTitle(clipId, trimmedValue)
-      message.success('标题更新成功')
+      message.success("Title updated.")
       setIsEditing(false)
       // 先更新本地状态，再调用回调
       onTitleUpdate?.(trimmedValue)
     } catch (error: any) {
       console.error('更新标题失败:', error)
-      message.error(error.userMessage || error.message || '更新标题失败')
+      message.error(error.userMessage || error.message || "Could not update the title.")
     } finally {
       setLoading(false)
     }
@@ -101,13 +101,13 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
       console.log('生成标题结果:', result)
       if (result.success && result.generated_title) {
         setEditValue(result.generated_title)
-        message.success('标题生成成功，您可以继续编辑或点击保存')
+        message.success("Title generated. You can edit it or save it.")
       } else {
-        message.error('标题生成失败')
+        message.error("Could not generate a title.")
       }
     } catch (error: any) {
       console.error('生成标题失败:', error)
-      message.error(error.userMessage || error.message || '生成标题失败')
+      message.error(error.userMessage || error.message || "Could not generate title")
     } finally {
       setGenerating(false)
     }
@@ -124,7 +124,7 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
   if (isEditing) {
     return (
       <Modal
-        title="编辑标题"
+        title="Edit title"
         open={isEditing}
         onCancel={handleCancel}
         footer={null}
@@ -139,7 +139,7 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyPress}
             maxLength={maxLength}
-            placeholder="请输入标题"
+            placeholder="Enter a title"
             autoSize={{ minRows: 3, maxRows: 8 }}
             style={{ 
               resize: 'none',
@@ -150,10 +150,10 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: '12px', color: '#666' }}>
-            字符数: {editValue.length}/{maxLength}
+            Characters: {editValue.length}/{maxLength}
           </div>
           <Space>
-            <Tooltip title="AI生成标题">
+            <Tooltip title="Generate title with AI">
               <Button
                 icon={<MagicWandIcon />}
                 loading={generating}
@@ -163,11 +163,11 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
                 }}
                 disabled={loading}
               >
-                AI生成
+                Generate with AI
               </Button>
             </Tooltip>
             <Button onClick={handleCancel} disabled={loading || generating}>
-              取消
+              Cancel
             </Button>
             <Button
               type="primary"
@@ -176,7 +176,7 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
               onClick={handleSave}
               disabled={generating}
             >
-              保存
+              Save
             </Button>
           </Space>
         </div>
@@ -193,7 +193,7 @@ const EditableTitle: React.FC<EditableTitleProps> = ({
       }}
       className={className}
       onClick={handleStartEdit}
-      title="点击编辑标题"
+      title="Click to edit title"
     >
       <span style={{ 
         wordBreak: 'break-word',

@@ -24,6 +24,20 @@ router = APIRouter()
 # 存储下载任务的状态
 download_tasks = {}
 
+SUPPORTED_YOUTUBE_CLIENTS = {"android", "ios", "tv"}
+
+
+def get_youtube_client(explicit_client: Optional[str] = None) -> str:
+    """Return a stable yt-dlp player client.
+
+    Recent yt-dlp releases can report some otherwise public videos as
+    unavailable when YouTube's default web client is selected implicitly.
+    Android provides normal MP4 formats for those videos and is already the
+    production Docker default, so use it consistently in local/desktop mode.
+    """
+    client = (explicit_client or os.getenv('AUTOCLIP_YT_CLIENT', 'android')).strip().lower()
+    return client if client in SUPPORTED_YOUTUBE_CLIENTS else 'android'
+
 
 @contextmanager
 def sanitized_yt_env():
@@ -48,6 +62,8 @@ class YouTubeDownloadRequest(BaseModel):
     project_name: str
     video_category: Optional[str] = "default"
     browser: Optional[str] = None
+    output_format: str = "youtube_shorts"
+    shorts_layout: str = "blur_pad"
 
 class YouTubeVideoInfo(BaseModel):
     title: str
@@ -119,9 +135,8 @@ async def parse_youtube_video(
                 cmd.extend(['--cookies-from-browser', browser.lower()])
 
             # 可选兜底客户端，规避 SABR
-            yt_client = (client or os.getenv('AUTOCLIP_YT_CLIENT', '')).strip().lower()
-            if yt_client in {"android", "ios", "tv"}:
-                cmd.extend(['--extractor-args', f"youtube:player_client={yt_client}"])
+            yt_client = get_youtube_client(client)
+            cmd.extend(['--extractor-args', f"youtube:player_client={yt_client}"])
             
             cmd.append(url)
             
@@ -207,9 +222,8 @@ async def create_youtube_download_task(request: YouTubeDownloadRequest):
             ydl_opts['cookiesfrombrowser'] = (request.browser.lower(),)
 
         # 可选兜底客户端
-        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', '').strip().lower()
-        if yt_client_env in {"android", "ios", "tv"}:
-            ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
+        yt_client = get_youtube_client()
+        ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client)
         
         def extract_info_sync(url, ydl_opts):
             with sanitized_yt_env():
@@ -249,6 +263,12 @@ async def create_youtube_download_task(request: YouTubeDownloadRequest):
                     logger.error(f"处理YouTube缩略图失败: {e}")
                     # 缩略图处理失败不影响主流程
             
+            from ...utils.output_profile import build_output_profile
+            try:
+                output_profile = build_output_profile(request.output_format, request.shorts_layout)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+
             # 创建项目数据
             project_data = ProjectCreate(
                 name=request.project_name,
@@ -260,6 +280,7 @@ async def create_youtube_download_task(request: YouTubeDownloadRequest):
                 settings={
                     "download_status": "downloading",
                     "download_progress": 0.0,
+                    "output_profile": output_profile,
                     "youtube_info": {
                         "url": request.url,
                         "browser": request.browser,
@@ -421,9 +442,8 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
             ydl_opts['cookiesfrombrowser'] = (request.browser.lower(),)
 
         # 可选兜底客户端
-        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', '').strip().lower()
-        if yt_client_env in {"android", "ios", "tv"}:
-            ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
+        yt_client = get_youtube_client()
+        ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client)
 
         def download_sync(url, ydl_opts):
             with sanitized_yt_env():
@@ -560,7 +580,6 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
             
             # 移动视频文件到项目目录
             import shutil
-            from pathlib import Path
             
             if video_path:
                 video_file_path = Path(video_path)

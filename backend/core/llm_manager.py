@@ -86,6 +86,8 @@ class LLMManager:
                         default_settings.update({
                             "dashscope_api_key": api_keys.get("dashscope", ""),
                             "openai_api_key": api_keys.get("openai", ""),
+                            "openai_base_url": saved_settings["api"].get("openai_base_url", ""),
+                            "llm_provider": saved_settings["api"].get("llm_provider", saved_settings.get("llm_provider", "dashscope")),
                             "gemini_api_key": api_keys.get("gemini", ""),
                             "siliconflow_api_key": api_keys.get("siliconflow", ""),
                             "model_name": saved_settings["api"].get("api_model", "qwen-plus")
@@ -120,8 +122,11 @@ class LLMManager:
             
             
             if api_key:
+                provider_options = {}
+                if provider_type == ProviderType.OPENAI:
+                    provider_options["base_url"] = self.settings.get("openai_base_url")
                 self.current_provider = LLMProviderFactory.create_provider(
-                    provider_type, api_key, model_name
+                    provider_type, api_key, model_name, **provider_options
                 )
                 logger.info(f"已初始化{provider_type.value}提供商，模型: {model_name}")
             else:

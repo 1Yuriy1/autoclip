@@ -91,7 +91,7 @@ const CookieHelper: React.FC<CookieHelperProps> = ({ visible, onClose }) => {
               1. 在开发者工具顶部找到标签页
             </Paragraph>
             <Paragraph>
-              2. 点击 <Text code>Network</Text> 标签
+              2. 点击 <Text code>Network</Text> Tags
             </Paragraph>
             <Paragraph>
               3. 确保Network面板是空的（如果有内容，点击清除按钮）
@@ -105,7 +105,7 @@ const CookieHelper: React.FC<CookieHelperProps> = ({ visible, onClose }) => {
       )
     },
     {
-      title: '刷新页面',
+      title: "Refresh page",
       description: '刷新B站页面以捕获请求',
       content: (
         <div>
@@ -151,7 +151,7 @@ const CookieHelper: React.FC<CookieHelperProps> = ({ visible, onClose }) => {
               1. 在Network面板中找到任意一个请求（通常选择第一个）
             </Paragraph>
             <Paragraph>
-              2. 点击该请求，在右侧面板中找到 <Text code>Headers</Text> 标签
+              2. 点击该请求，在右侧面板中找到 <Text code>Headers</Text> Tags
             </Paragraph>
             <Paragraph>
               3. 在 <Text code>Request Headers</Text> 部分找到 <Text code>Cookie</Text> 字段
@@ -225,7 +225,7 @@ const CookieHelper: React.FC<CookieHelperProps> = ({ visible, onClose }) => {
       onCancel={onClose}
       footer={[
         <Button key="back" onClick={onClose}>
-          关闭
+          Close
         </Button>,
         <Button
           key="copy"

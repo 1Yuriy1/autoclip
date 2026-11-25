@@ -3,7 +3,7 @@
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from ...core.database import get_db
 from ...services.clip_service import ClipService
@@ -361,3 +361,99 @@ async def resync_project_clips(
         logger.error(f"重新同步切片失败: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail=f"重新同步失败: {str(e)}")
+
+@router.get('/{clip_id}/upload-kit')
+def get_upload_kit(clip_id: str, db: Session = Depends(get_db)):
+    from ...services.upload_kit import default_kit
+    clip=db.query(Clip).filter(Clip.id==clip_id).first()
+    if not clip:raise HTTPException(404,'Clip not found')
+    return default_kit(clip)
+
+
+@router.put('/{clip_id}/upload-kit')
+def save_upload_kit(clip_id: str, data: dict, db: Session = Depends(get_db)):
+    from ...services.upload_kit import default_kit, validate_kit
+    clip=db.query(Clip).filter(Clip.id==clip_id).first()
+    if not clip:raise HTTPException(404,'Clip not found')
+    try:kit=validate_kit(data,clip.duration)
+    except (ValueError,TypeError) as error:raise HTTPException(400,str(error))
+    clip.clip_metadata={**(clip.clip_metadata or {}),'uploadKit':kit}
+    db.commit()
+    return default_kit(clip)
+
+
+@router.get('/{clip_id}/upload-kit/thumbnail')
+def get_upload_thumbnail(clip_id: str, download: bool=False, db: Session = Depends(get_db)):
+    from fastapi.responses import FileResponse
+    from ...services.upload_kit import default_kit, thumbnail
+    clip=db.query(Clip).filter(Clip.id==clip_id).first()
+    if not clip:raise HTTPException(404,'Clip not found')
+    try:path=thumbnail(clip,default_kit(clip))
+    except (ValueError,TimeoutError) as error:raise HTTPException(400,str(error))
+    return FileResponse(path,media_type='image/jpeg',filename='thumbnail.jpg' if download else None,
+                        headers={'Cache-Control':'no-cache'})
+
+
+@router.get('/{clip_id}/upload-kit/details')
+def download_upload_details(clip_id: str, db: Session = Depends(get_db)):
+    from fastapi.responses import Response
+    from ...services.upload_kit import default_kit
+    clip=db.query(Clip).filter(Clip.id==clip_id).first()
+    if not clip:raise HTTPException(404,'Clip not found')
+    kit=default_kit(clip)
+    text=f"TITLE\n{kit['title']}\n\nDESCRIPTION\n{kit['description']}\n\nTAGS\n{', '.join(kit['tags'])}\n"
+    return Response(text,media_type='text/plain; charset=utf-8',headers={'Content-Disposition':'attachment; filename="upload-details.txt"'})
+
+
+@router.post('/{clip_id}/upload-kit/suggest')
+def suggest_upload_kit(clip_id: str, data: dict, db: Session = Depends(get_db)):
+    from ...services.upload_kit import default_kit
+    clip=db.query(Clip).filter(Clip.id==clip_id).first()
+    if not clip:raise HTTPException(404,'Clip not found')
+    subject=data.get('subject')
+    if subject is not None and (not isinstance(subject,str) or len(subject)>60):raise HTTPException(400,'Main subject must be at most 60 characters')
+    return default_kit(clip,subject_override=subject,refresh=True)
+
+
+@router.get('/{clip_id}/upload-kit/ai')
+def ai_thumbnail_status(clip_id: str, db: Session = Depends(get_db)):
+    from ...services.ai_thumbnail import settings, ACTIVE, prompt_for
+    from ...services.upload_kit import default_kit
+    clip=db.query(Clip).filter(Clip.id==clip_id).first()
+    if not clip:raise HTTPException(404,'Clip not found')
+    config=settings()
+    return {'configured':bool(config['key']),'model':config['model'],'generating':clip_id in ACTIVE,
+            'prompt':prompt_for(clip,default_kit(clip))}
+
+
+@router.post('/{clip_id}/upload-kit/ai')
+def generate_ai_thumbnail(clip_id: str, data: dict, db: Session = Depends(get_db)):
+    from ...services.ai_thumbnail import LOCK, ACTIVE, generate, store_artwork
+    from ...services.upload_kit import default_kit
+    clip=db.query(Clip).filter(Clip.id==clip_id).first()
+    if not clip:raise HTTPException(404,'Clip not found')
+    direction=data.get('direction','')
+    if not isinstance(direction,str) or len(direction)>1000:raise HTTPException(400,'Art direction must be under 1000 characters')
+    with LOCK:
+        if clip_id in ACTIVE:raise HTTPException(409,'An image is already generating for this clip.')
+        ACTIVE.add(clip_id)
+    try:
+        raw,model,prompt=generate(clip,default_kit(clip),direction)
+        db.refresh(clip)
+        store_artwork(clip,raw,model,prompt);db.commit()
+        return default_kit(clip)
+    except ValueError as error:raise HTTPException(400,str(error))
+    finally:
+        with LOCK:ACTIVE.discard(clip_id)
+
+
+@router.post('/{clip_id}/upload-kit/artwork')
+def upload_thumbnail_artwork(clip_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    from ...services.ai_thumbnail import store_artwork
+    from ...services.upload_kit import default_kit
+    clip=db.query(Clip).filter(Clip.id==clip_id).first()
+    if not clip:raise HTTPException(404,'Clip not found')
+    raw=file.file.read(20*1024**2+1)
+    try:store_artwork(clip,raw,'Imported artwork');db.commit()
+    except ValueError as error:raise HTTPException(400,str(error))
+    return default_kit(clip)

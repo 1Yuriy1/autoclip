@@ -14,10 +14,27 @@ from ..core.shared_config import PROMPT_FILES, METADATA_DIR
 
 logger = logging.getLogger(__name__)
 
+SHORTS_OUTLINE_INSTRUCTION = """
+
+## YouTube Shorts 模式（优先级最高）
+- 每个候选话题必须能独立剪成不超过 180 秒的竖屏短视频。
+- 优先识别 30-90 秒内能讲完整的强观点、反差、结论、故事高潮或实用步骤。
+- 长话题必须拆成多个各自完整的子话题，禁止建议 3 分钟以上的单一片段。
+- 标题要具体、有明确观看收益，并让每个候选片段无需依赖前后文也能理解。
+"""
+
+
+def _is_shorts_profile(output_profile: Optional[Dict]) -> bool:
+    if not output_profile:
+        return False
+    value = str(output_profile.get('format') or output_profile.get('aspect_ratio') or '').lower()
+    return value in {'youtube_shorts', 'shorts', 'short', '9:16', '9/16', 'vertical', 'portrait'}
+
 class OutlineExtractor:
     """大纲提取器（重构版）"""
     
-    def __init__(self, metadata_dir: Path = None, prompt_files: Dict = None):
+    def __init__(self, metadata_dir: Path = None, prompt_files: Dict = None,
+                 output_profile: Optional[Dict] = None):
         self.llm_client = LLMClient()
         self.text_processor = TextProcessor()
         
@@ -33,6 +50,8 @@ class OutlineExtractor:
         # 加载提示词
         with open(prompt_files['outline'], 'r', encoding='utf-8') as f:
             self.outline_prompt = f.read()
+        if _is_shorts_profile(output_profile):
+            self.outline_prompt += SHORTS_OUTLINE_INSTRUCTION
             
         # 创建用于存放中间文本块的目录
         self.chunks_dir = self.metadata_dir / "step1_chunks"
@@ -201,14 +220,16 @@ class OutlineExtractor:
         with open(input_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-def run_step1_outline(srt_path: Path, metadata_dir: Path = None, output_path: Optional[Path] = None, prompt_files: Dict = None) -> List[Dict]:
+def run_step1_outline(srt_path: Path, metadata_dir: Path = None,
+                      output_path: Optional[Path] = None, prompt_files: Dict = None,
+                      output_profile: Optional[Dict] = None) -> List[Dict]:
     """
     运行Step 1: 大纲提取
     """
     if metadata_dir is None:
         metadata_dir = METADATA_DIR
         
-    extractor = OutlineExtractor(metadata_dir, prompt_files)
+    extractor = OutlineExtractor(metadata_dir, prompt_files, output_profile=output_profile)
     outlines = extractor.extract_outline(srt_path)
     
     if output_path is None:

@@ -32,6 +32,8 @@ class BilibiliDownloadRequest(BaseModel):
     project_name: str
     video_category: Optional[str] = "default"
     browser: Optional[str] = None
+    output_format: str = "youtube_shorts"
+    shorts_layout: str = "blur_pad"
 
 class BilibiliVideoInfo(BaseModel):
     title: str
@@ -132,6 +134,12 @@ async def create_bilibili_download_task(request: BilibiliDownloadRequest):
                     logger.error(f"处理B站缩略图失败: {e}")
                     # 缩略图处理失败不影响主流程
             
+            from ...utils.output_profile import build_output_profile
+            try:
+                output_profile = build_output_profile(request.output_format, request.shorts_layout)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+
             # 创建项目数据
             project_data = ProjectCreate(
                 name=request.project_name,
@@ -143,6 +151,7 @@ async def create_bilibili_download_task(request: BilibiliDownloadRequest):
                 settings={
                     "download_status": "downloading",
                     "download_progress": 0.0,
+                    "output_profile": output_profile,
                     "bilibili_info": {
                         "url": request.url,
                         "browser": request.browser,

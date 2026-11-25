@@ -11,6 +11,7 @@ from backend.models.clip import Clip, ClipStatus
 from backend.models.collection import Collection, CollectionStatus
 from backend.models.project import Project, ProjectStatus, ProjectType
 from backend.models.task import Task, TaskStatus, TaskType
+from backend.utils.video_processor import VideoProcessor
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -148,12 +149,12 @@ class DataSyncService:
         try:
             # 查找切片数据文件
             clips_files = [
+                project_dir / "metadata" / "clips_metadata.json",  # Final exports include minute versions.
                 project_dir / "step6_video" / "clips_metadata.json",  # 最完整的数据源
                 project_dir / "step3_all_scored.json",  # 优先使用正确的数据源
                 project_dir / "step4_title" / "step4_title.json",
                 project_dir / "step4_titles.json",
                 project_dir / "clips_metadata.json",
-                project_dir / "metadata" / "clips_metadata.json"
             ]
             
             clips_data = None
@@ -185,19 +186,24 @@ class DataSyncService:
             updated_count = 0
             for clip_data in clips_data:
                 try:
-                    # 检查切片是否已存在
-                    existing_clip = self.db.query(Clip).filter(
-                        Clip.project_id == project_id,
-                        Clip.title == clip_data.get("generated_title", clip_data.get("title", ""))
-                    ).first()
+                    clip_id = str(clip_data.get('id', synced_count + 1))
+                    title = clip_data.get('generated_title', clip_data.get('title', clip_data.get('outline', '')))
+
+                    # Stable source clip IDs survive title changes and processing retries.
+                    project_clips = self.db.query(Clip).filter(Clip.project_id == project_id).all()
+                    existing_clip = next(
+                        (
+                            candidate for candidate in project_clips
+                            if str((candidate.clip_metadata or {}).get('id', '')) == clip_id
+                        ),
+                        None,
+                    )
+                    if existing_clip is None:
+                        existing_clip = next((candidate for candidate in project_clips if candidate.title == title), None)
                     
                     if existing_clip:
                         # 更新现有切片的video_path和tags，强制使用项目内输出目录
-                        clip_id = clip_data.get('id', str(synced_count + 1))
-                        safe_title = clip_data.get('generated_title', clip_data.get('title', clip_data.get('outline', '')))
-                        # 清理文件名，移除特殊字符
-                        safe_title = "".join(c for c in safe_title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                        safe_title = safe_title.replace(' ', '_')
+                        safe_title = VideoProcessor.sanitize_filename(title)
                         
                         # 强制使用项目内标准路径
                         from ..core.path_utils import get_project_directory
@@ -205,6 +211,14 @@ class DataSyncService:
                         project_clips_dir = project_dir / "output" / "clips"
                         project_clips_dir.mkdir(parents=True, exist_ok=True)
                         project_video_path = project_clips_dir / f"{clip_id}_{safe_title}.mp4"
+                        if not project_video_path.exists():
+                            candidates = sorted(
+                                project_clips_dir.glob(f"{clip_id}_*.mp4"),
+                                key=lambda path: path.stat().st_mtime,
+                                reverse=True,
+                            )
+                            if candidates:
+                                project_video_path = candidates[0]
                         
                         # 兼容旧的全局输出目录，如果存在则迁移到项目目录
                         from ..core.path_utils import get_data_directory
@@ -220,7 +234,15 @@ class DataSyncService:
                         # 始终使用项目内路径
                         video_path = str(project_video_path)
                         logger.info(f"更新切片 {existing_clip.id} 的video_path: {video_path}")
+                        existing_clip.title = title
+                        existing_clip.description = clip_data.get('recommend_reason', '')
+                        existing_clip.start_time = self._convert_time_to_seconds(clip_data.get('start_time', '00:00:00'))
+                        existing_clip.end_time = self._convert_time_to_seconds(clip_data.get('end_time', '00:00:00'))
+                        existing_clip.duration = existing_clip.end_time - existing_clip.start_time
+                        existing_clip.score = clip_data.get('final_score', 0.0)
                         existing_clip.video_path = video_path
+                        existing_clip.clip_metadata = clip_data
+                        existing_clip.status = ClipStatus.COMPLETED
                         if existing_clip.tags is None:
                             existing_clip.tags = []  # 确保tags是空列表而不是null
                         updated_count += 1
@@ -232,9 +254,6 @@ class DataSyncService:
                     duration = end_time - start_time
                     
                     # 构建视频文件路径，强制使用项目内目录
-                    clip_id = clip_data.get('id', str(synced_count + 1))
-                    title = clip_data.get('generated_title', clip_data.get('title', clip_data.get('outline', '')))
-                    
                     # 强制使用项目内路径
                     from ..core.path_utils import get_project_directory, get_data_directory
                     project_dir = get_project_directory(project_id)
@@ -242,17 +261,22 @@ class DataSyncService:
                     project_clips_dir.mkdir(parents=True, exist_ok=True)
                     
                     # 查找实际的文件名（保留特殊字符）
-                    actual_filename = None
-                    for file_path in project_clips_dir.glob(f"{clip_id}_*.mp4"):
-                        actual_filename = file_path.name
-                        break
+                    safe_title = VideoProcessor.sanitize_filename(title)
+                    preferred_video_path = project_clips_dir / f"{clip_id}_{safe_title}.mp4"
+                    actual_filename = preferred_video_path.name if preferred_video_path.exists() else None
+                    if actual_filename is None:
+                        candidates = sorted(
+                            project_clips_dir.glob(f"{clip_id}_*.mp4"),
+                            key=lambda path: path.stat().st_mtime,
+                            reverse=True,
+                        )
+                        if candidates:
+                            actual_filename = candidates[0].name
                     
                     if actual_filename:
                         project_video_path = project_clips_dir / actual_filename
                     else:
                         # 如果找不到实际文件，使用清理后的文件名作为后备
-                        safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                        safe_title = safe_title.replace(' ', '_')
                         project_video_path = project_clips_dir / f"{clip_id}_{safe_title}.mp4"
                     
                     # 兼容旧的全局输出目录，如果存在则迁移到项目目录

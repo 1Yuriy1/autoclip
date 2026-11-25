@@ -164,7 +164,7 @@ export const showApiConfigModal = (missingProviders: string[], onNavigateToSetti
       </div>
     ),
     okText: '去配置',
-    cancelText: '取消',
+    cancelText: "Cancel",
     onOk: () => {
       if (onNavigateToSettings) {
         onNavigateToSettings()
@@ -186,18 +186,10 @@ export const showApiConfigModal = (missingProviders: string[], onNavigateToSetti
  * 如果配置不完整，显示提示并阻止创建
  */
 export const validateApiConfigBeforeProjectCreation = async (): Promise<boolean> => {
-  console.log('开始验证API配置...')
-  const configStatus = await checkApiConfig()
-  
-  console.log('API配置验证结果:', configStatus)
-  
-  if (!configStatus.hasValidConfig) {
-    console.log('API配置无效，显示配置弹窗')
-    showApiConfigModal(configStatus.missingProviders)
-    return false
-  }
-  
-  console.log('API配置有效，允许创建项目')
+  // 说明：LLM 密钥通过后端环境变量(OPENAI_API_KEY 等)配置，而 /api/v1/settings
+  // 在服务端模式下并不存在(404)，会导致本地检查误判为"未配置"从而阻断导入。
+  // 后端在流水线内部会自行校验 LLM 配置，这里不再前置拦截，避免误报阻塞创建项目。
+  console.log('跳过前端API配置前置校验，交由后端校验')
   return true
 }
 

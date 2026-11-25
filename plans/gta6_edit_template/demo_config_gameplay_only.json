@@ -1,0 +1,12 @@
+{
+  "mode": "gameplay_only",
+  "gameplay_path": "/Users/yuriy/autoclip/data/projects/cb68835a-3d97-4ffb-a333-47e9e1c6ec47/output/clips/1_The Importance of Absolute Testimony and Threat Tactics in Witness Manipulation.mp4",
+  "output_path": "/Users/yuriy/autoclip/plans/gta6_edit_template/sample_output/demo_gameplay_only.mp4",
+  "hook_text": "He thought he could threaten a witness",
+  "streamer_credit": "clipped from @DemoStreamer",
+  "captions_words_json": "/Users/yuriy/autoclip/plans/gta6_edit_template/demo_words.json",
+  "caption_words_per_chunk": 3,
+  "radio_mute_windows": [[0.0, 0.0]],
+  "gore_check_passed": true,
+  "_note": "Test source is the non-GTA 'Suits' clip already cut by the pipeline (data/projects/cb68835a.../output/clips/1_...mp4) — repo had no streamer facecam gaming clip in /output, so this validates the gameplay_only fallback path end to end. See README.md."
+}

@@ -114,7 +114,7 @@ export const useSimpleProgressStore = create<SimpleProgressState>((set, get) => 
       fetchSnapshots()
 
       // 设置定时器
-      timer = setInterval(fetchSnapshots, intervalMs)
+      timer = window.setInterval(fetchSnapshots, intervalMs)
 
       set({
         isPolling: true,
@@ -165,12 +165,12 @@ export const useSimpleProgressStore = create<SimpleProgressState>((set, get) => 
 
 // 阶段显示名称映射
 export const STAGE_DISPLAY_NAMES: Record<string, string> = {
-  'INGEST': '素材准备',
-  'SUBTITLE': '字幕处理',
-  'ANALYZE': '内容分析', 
-  'HIGHLIGHT': '片段定位',
-  'EXPORT': '视频导出',
-  'DONE': '处理完成'
+  'INGEST': "Preparing media",
+  'SUBTITLE': "Processing captions",
+  'ANALYZE': "Analyzing content",
+  'HIGHLIGHT': "Finding highlights",
+  'EXPORT': "Exporting video",
+  'DONE': "Processing complete"
 }
 
 // 阶段颜色映射
@@ -200,5 +200,5 @@ export const isCompleted = (stage: string): boolean => {
 
 // 判断是否为失败状态
 export const isFailed = (message: string): boolean => {
-  return message.includes('失败') || message.includes('错误') || message.includes('失败')
+  return /failed|failure|error|失败|错误/i.test(message)
 }

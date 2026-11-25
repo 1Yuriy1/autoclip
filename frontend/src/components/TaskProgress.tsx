@@ -65,7 +65,7 @@ const TaskProgress: React.FC<TaskProgressProps> = ({
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '未知错误');
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -87,13 +87,13 @@ const TaskProgress: React.FC<TaskProgressProps> = ({
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'running':
-        return { icon: <PlayCircleOutlined />, color: 'processing', text: '处理中' };
+        return { icon: <PlayCircleOutlined />, color: 'processing', text: "Processing" };
       case 'completed':
-        return { icon: <CheckCircleOutlined />, color: 'success', text: '已完成' };
+        return { icon: <CheckCircleOutlined />, color: 'success', text: "Completed" };
       case 'failed':
-        return { icon: <CloseCircleOutlined />, color: 'error', text: '失败' };
+        return { icon: <CloseCircleOutlined />, color: 'error', text: "Failed" };
       case 'pending':
-        return { icon: <ClockCircleOutlined />, color: 'default', text: '等待中' };
+        return { icon: <ClockCircleOutlined />, color: 'default', text: "Waiting" };
       default:
         return { icon: <ClockCircleOutlined />, color: 'default', text: status };
     }
@@ -119,7 +119,7 @@ const TaskProgress: React.FC<TaskProgressProps> = ({
         <div style={{ textAlign: 'center', padding: '20px' }}>
           <Spin size="large" />
           <div style={{ marginTop: 16 }}>
-            <Text>正在获取任务进度...</Text>
+            <Text>Loading task progress...</Text>
           </div>
         </div>
       </Card>
@@ -154,7 +154,7 @@ const TaskProgress: React.FC<TaskProgressProps> = ({
         <Space>
           {statusConfig.icon}
           <Title level={5} style={{ margin: 0 }}>
-            {progressData.name || '视频处理任务'}
+            {progressData.name || "Video processing task"}
           </Title>
           <Tag color={statusConfig.color}>
             {statusConfig.text}
@@ -175,7 +175,7 @@ const TaskProgress: React.FC<TaskProgressProps> = ({
 
       <div style={{ marginBottom: 8 }}>
         <Text strong>当前步骤: </Text>
-        <Text>{currentStep || '未知'}</Text>
+        <Text>{currentStep || "Unknown"}</Text>
       </div>
 
       {progressData.step_details && (
@@ -207,7 +207,7 @@ const TaskProgress: React.FC<TaskProgressProps> = ({
 
       {status === 'processing' && (
         <div style={{ marginTop: 16, textAlign: 'center' }}>
-          <Text type="secondary">进度每5秒自动更新</Text>
+          <Text type="secondary">Progress updates automatically every 5 seconds.</Text>
         </div>
       )}
     </Card>

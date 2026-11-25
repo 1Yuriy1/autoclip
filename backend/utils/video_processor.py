@@ -23,6 +23,71 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+SHORTS_ASPECT_ALIASES = {'9:16', '9/16', 'vertical', 'portrait', 'shorts', 'short', 'youtube_shorts'}
+SHORTS_LAYOUTS = {'crop', 'blur_pad'}
+YOUTUBE_SHORTS_MAX_DURATION_SECONDS = 180.0
+
+# 短视频/竖屏输出配置（读取失败时降级为 None，保持原有横屏行为）
+try:
+    from ..core.config import settings as _settings
+except Exception:  # pragma: no cover
+    _settings = None
+
+
+def resolve_reframe(output_profile: Optional[Dict] = None) -> Optional[Dict]:
+    """解析竖屏输出配置。
+
+    项目级 ``output_profile`` 优先于进程环境配置，确保桌面后台线程和
+    Celery worker 对同一个项目使用完全相同的导出参数。
+    """
+    if output_profile is not None:
+        output_format = str(output_profile.get('format', '') or '').strip().lower()
+        aspect = str(output_profile.get('aspect_ratio', '') or '').strip().lower()
+        if not aspect:
+            aspect = '9:16' if output_format in SHORTS_ASPECT_ALIASES else 'original'
+        layout = str(output_profile.get('layout', 'blur_pad') or 'blur_pad').strip().lower()
+        width = int(output_profile.get('width', 1080) or 1080)
+        height = int(output_profile.get('height', 1920) or 1920)
+        max_duration = float(
+            output_profile.get('max_duration_seconds', YOUTUBE_SHORTS_MAX_DURATION_SECONDS)
+            or YOUTUBE_SHORTS_MAX_DURATION_SECONDS
+        )
+    else:
+        if _settings is None:
+            return None
+        aspect = str(getattr(_settings, 'clip_aspect_ratio', 'original') or 'original').strip().lower()
+        layout = str(getattr(_settings, 'short_form_layout', 'crop') or 'crop').strip().lower()
+        width = int(getattr(_settings, 'short_form_width', 1080) or 1080)
+        height = int(getattr(_settings, 'short_form_height', 1920) or 1920)
+        max_duration = YOUTUBE_SHORTS_MAX_DURATION_SECONDS
+
+    if aspect not in SHORTS_ASPECT_ALIASES:
+        return None
+
+    layout_aliases = {'blur': 'blur_pad', 'pad': 'blur_pad'}
+    layout = layout_aliases.get(layout, layout)
+    if layout not in SHORTS_LAYOUTS:
+        raise ValueError(f"不支持的竖屏排版: {layout}. 可选值: crop, blur_pad")
+    if width <= 0 or height <= 0 or width % 2 or height % 2:
+        raise ValueError("竖屏输出宽高必须是正偶数")
+    if abs((width / height) - (9 / 16)) > 0.001:
+        raise ValueError(f"YouTube Shorts 输出尺寸必须是 9:16，当前为 {width}x{height}")
+    if not 1 <= max_duration <= YOUTUBE_SHORTS_MAX_DURATION_SECONDS:
+        raise ValueError("Shorts 最大时长必须在 1 到 180 秒之间")
+
+    return {
+        'enabled': True,
+        'layout': layout,
+        'width': width,
+        'height': height,
+        'max_duration_seconds': max_duration,
+    }
+
+
+# Backward-compatible alias for the first vertical-output implementation.
+_resolve_reframe = resolve_reframe
+
+
 class VideoProcessor:
     """视频处理工具类"""
     
@@ -126,17 +191,52 @@ class VideoProcessor:
             return 0.0
     
     @staticmethod
-    def extract_clip(input_video: Path, output_path: Path, 
-                    start_time: str, end_time: str) -> bool:
+    def _build_reframe_ffmpeg_args(reframe: Dict) -> List[str]:
+        """构建竖屏重构的 FFmpeg 参数（滤镜 + 重新编码）。
+
+        - layout='crop'：缩放铺满后居中裁剪到目标尺寸（真·全屏竖屏，会裁掉左右）。
+        - layout='blur_pad'：保留完整画面按宽度适配，上下用放大模糊的背景填充。
+        """
+        w = int(reframe.get('width', 1080))
+        h = int(reframe.get('height', 1920))
+        layout = str(reframe.get('layout', 'crop')).lower()
+
+        # 重新编码参数：H.264 + AAC，保证各平台兼容
+        encode = [
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+            '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', '160k',
+            '-movflags', '+faststart',
+        ]
+
+        if layout in ('blur_pad', 'blur', 'pad'):
+            filter_complex = (
+                f"[0:v]split=2[bg][fg];"
+                f"[bg]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},gblur=sigma=25[bgb];"
+                f"[fg]scale={w}:{h}:force_original_aspect_ratio=decrease[fgs];"
+                f"[bgb][fgs]overlay=(W-w)/2:(H-h)/2,setsar=1[v]"
+            )
+            return ['-filter_complex', filter_complex, '-map', '[v]', '-map', '0:a?'] + encode
+
+        # 默认 crop：先放大到能覆盖目标尺寸，再居中裁剪
+        vf = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},setsar=1"
+        return ['-vf', vf] + encode
+
+    @staticmethod
+    def extract_clip(input_video: Path, output_path: Path,
+                    start_time: str, end_time: str,
+                    reframe: Optional[Dict] = None) -> bool:
         """
         从视频中提取指定时间段的片段
-        
+
         Args:
             input_video: 输入视频路径
             output_path: 输出视频路径
             start_time: 开始时间 (格式: "00:01:25,140")
             end_time: 结束时间 (格式: "00:02:53,500")
-            
+            reframe: 竖屏重构配置（{'enabled','layout','width','height'}）。
+                     为 None 或未启用时保持原有横屏(流复制)行为。
+
         Returns:
             是否成功
         """
@@ -161,8 +261,20 @@ class VideoProcessor:
                 '-ss', ffmpeg_start_time,  # 在输入前定位，更精确
                 '-i', str(input_video),
                 '-t', str(duration),  # 使用持续时间而不是绝对结束时间
-                '-c:v', 'copy',  # 复制视频流
-                '-c:a', 'copy',  # 复制音频流
+            ]
+
+            if reframe and reframe.get('enabled'):
+                # 竖屏短视频：应用重构滤镜并重新编码
+                cmd += VideoProcessor._build_reframe_ffmpeg_args(reframe)
+                logger.info(
+                    f"竖屏输出已启用: layout={reframe.get('layout')} "
+                    f"{reframe.get('width')}x{reframe.get('height')}"
+                )
+            else:
+                # 保持源比例：直接流复制，速度最快、无质量损失
+                cmd += ['-c:v', 'copy', '-c:a', 'copy']
+
+            cmd += [
                 '-avoid_negative_ts', 'make_zero',
                 '-y',  # 覆盖输出文件
                 str(output_path)
@@ -181,6 +293,64 @@ class VideoProcessor:
         except Exception as e:
             logger.error(f"视频处理异常: {str(e)}")
             return False
+
+    @staticmethod
+    def reframe_video(input_video: Path, output_path: Path, reframe: Dict) -> bool:
+        """将完整视频转换为统一的 9:16 输出，供导出和上传工具复用。"""
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            cmd = [get_ffmpeg_path(), '-i', str(input_video)]
+            cmd += VideoProcessor._build_reframe_ffmpeg_args(reframe)
+            cmd += ['-y', str(output_path)]
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='ignore',
+            )
+            if result.returncode == 0:
+                return True
+            logger.error(f"竖屏视频转换失败: {result.stderr}")
+            return False
+        except Exception as exc:
+            logger.error(f"竖屏视频转换异常: {exc}")
+            return False
+
+    @staticmethod
+    def validate_youtube_short(video_path: Path, max_duration_seconds: float = YOUTUBE_SHORTS_MAX_DURATION_SECONDS) -> List[str]:
+        """返回 Shorts 兼容性错误；空列表表示文件可安全进入上传流程。"""
+        info = VideoProcessor.get_video_info(video_path)
+        if not info:
+            return ['无法读取视频信息']
+
+        errors = []
+        duration = float(info.get('duration', 0) or 0)
+        if duration <= 0:
+            errors.append('视频时长无效')
+        elif duration > max_duration_seconds + 0.05:
+            errors.append(f'视频时长 {duration:.2f}s 超过 Shorts 上限 {max_duration_seconds:.0f}s')
+
+        video_stream = next(
+            (stream for stream in info.get('streams', []) if stream.get('codec_type') == 'video'),
+            None,
+        )
+        if not video_stream:
+            errors.append('缺少视频流')
+            return errors
+
+        width = int(video_stream.get('width', 0) or 0)
+        height = int(video_stream.get('height', 0) or 0)
+        if width <= 0 or height <= 0:
+            errors.append('视频尺寸无效')
+        elif abs((width / height) - (9 / 16)) > 0.01:
+            errors.append(f'视频不是 9:16（当前 {width}x{height}）')
+
+        if video_stream.get('codec_name') != 'h264':
+            errors.append('视频编码不是 H.264')
+        if video_stream.get('pix_fmt') != 'yuv420p':
+            errors.append('像素格式不是 yuv420p')
+        return errors
     
     @staticmethod
     def create_collection(clips_list: List[Path], output_path: Path) -> bool:
@@ -350,7 +520,8 @@ class VideoProcessor:
             logger.error(f"获取视频信息异常: {str(e)}")
             return {}
     
-    def batch_extract_clips(self, input_video: Path, clips_data: List[Dict]) -> List[Path]:
+    def batch_extract_clips(self, input_video: Path, clips_data: List[Dict],
+                            output_profile: Optional[Dict] = None) -> List[Path]:
         """
         批量提取视频片段
         
@@ -362,7 +533,15 @@ class VideoProcessor:
             成功提取的片段路径列表
         """
         successful_clips = []
-        
+
+        # 解析一次竖屏重构配置，应用到本批次所有切片
+        reframe = resolve_reframe(output_profile)
+        if reframe:
+            logger.info(
+                f"本批次将输出竖屏短视频: {reframe['width']}x{reframe['height']} "
+                f"(layout={reframe['layout']})"
+            )
+
         for clip_data in clips_data:
             clip_id = clip_data['id']
             title = clip_data.get('title', f"片段_{clip_id}")
@@ -382,7 +561,17 @@ class VideoProcessor:
             
             logger.info(f"提取切片 {clip_id}: {start_time} -> {end_time}, 输出: {output_path}")
             
-            if VideoProcessor.extract_clip(input_video, output_path, start_time, end_time):
+            if VideoProcessor.extract_clip(input_video, output_path, start_time, end_time, reframe=reframe):
+                if reframe:
+                    from .shorts_captions import burn_captions
+                    srt_path = input_video.parent / 'input.srt'
+                    if not srt_path.exists():
+                        srt_path = self.clips_dir.parent.parent / 'raw' / 'input.srt'
+                    if srt_path.exists():
+                        burn_captions(
+                            output_path, srt_path,
+                            VideoProcessor.convert_ffmpeg_time_to_seconds(start_time.replace(',', '.')),
+                        )
                 successful_clips.append(output_path)
                 logger.info(f"切片 {clip_id} 提取成功")
             else:

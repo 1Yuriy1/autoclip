@@ -3,9 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import { ConfigProvider } from 'antd'
 import { theme as antdTheme } from 'antd'
-import zhCN from 'antd/locale/zh_CN'
+import enUS from 'antd/locale/en_US'
 import dayjs from 'dayjs'
-import 'dayjs/locale/zh-cn'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import timezone from 'dayjs/plugin/timezone'
 import utc from 'dayjs/plugin/utc'
@@ -27,8 +26,8 @@ dayjs.extend(timezone)
 dayjs.extend(utc)
 
 // 设置dayjs中文和时区
-dayjs.locale('zh-cn')
-dayjs.tz.setDefault('Asia/Shanghai')
+dayjs.locale('en')
+dayjs.tz.setDefault(dayjs.tz.guess())
 
 function Root() {
   // 统一在根节点接入错误边界，避免运行时异常导致白屏
@@ -45,7 +44,7 @@ function ThemedApp() {
 
   return (
     <ConfigProvider
-      locale={zhCN}
+      locale={enUS}
       theme={{
       algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
       token: {

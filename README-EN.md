@@ -218,6 +218,8 @@ cp env.example .env
 
 3. **Video Clipping and Collections**
    - Automatic exciting clip generation
+   - Project-level YouTube Shorts export (9:16, 1080×1920, up to 3 minutes)
+   - Full-frame blurred background or center-crop layouts
    - Smart collection recommendations
    - Support for manual editing and sorting
 

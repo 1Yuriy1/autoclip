@@ -125,7 +125,7 @@ const UploadQueueManager: React.FC = () => {
         setAccounts(data.accounts || []);
       }
     } catch (error) {
-      console.error('获取账号列表失败:', error);
+      console.error("Could not load accounts:", error);
     }
   };
 
@@ -204,7 +204,7 @@ const UploadQueueManager: React.FC = () => {
       });
 
       if (response.ok) {
-        message.success('任务已取消');
+        message.success("Task canceled.");
         fetchQueueStatus();
         fetchUploadHistory();
       } else {
@@ -242,12 +242,12 @@ const UploadQueueManager: React.FC = () => {
   // 获取状态标签
   const getStatusTag = (status: string) => {
     const statusConfig: Record<string, { color: string; text: string }> = {
-      pending: { color: 'default', text: '等待中' },
+      pending: { color: 'default', text: "Waiting" },
       queued: { color: 'blue', text: '队列中' },
-      processing: { color: 'orange', text: '处理中' },
-      completed: { color: 'green', text: '已完成' },
-      failed: { color: 'red', text: '失败' },
-      cancelled: { color: 'gray', text: '已取消' }
+      processing: { color: 'orange', text: "Processing" },
+      completed: { color: 'green', text: "Completed" },
+      failed: { color: 'red', text: "Failed" },
+      cancelled: { color: 'gray', text: "Canceled" }
     };
     
     const config = statusConfig[status] || { color: 'default', text: status };
@@ -270,7 +270,7 @@ const UploadQueueManager: React.FC = () => {
   // 表格列定义
   const columns: ColumnsType<UploadTask> = [
     {
-      title: '任务ID',
+      title: "Task ID",
       dataIndex: 'task_id',
       key: 'task_id',
       width: 120,
@@ -281,13 +281,13 @@ const UploadQueueManager: React.FC = () => {
       ),
     },
     {
-      title: '标题',
+      title: "Title",
       dataIndex: 'title',
       key: 'title',
       ellipsis: true,
     },
     {
-      title: '状态',
+      title: "Status",
       dataIndex: 'status',
       key: 'status',
       width: 100,
@@ -301,7 +301,7 @@ const UploadQueueManager: React.FC = () => {
       render: (priority: number) => getPriorityTag(priority),
     },
     {
-      title: '进度',
+      title: "Progress",
       dataIndex: 'progress',
       key: 'progress',
       width: 120,
@@ -320,7 +320,7 @@ const UploadQueueManager: React.FC = () => {
       width: 80,
     },
     {
-      title: 'BV号',
+      title: "BV ID",
       dataIndex: 'bv_id',
       key: 'bv_id',
       width: 120,
@@ -331,14 +331,14 @@ const UploadQueueManager: React.FC = () => {
       ) : '-',
     },
     {
-      title: '创建时间',
+      title: "Created",
       dataIndex: 'created_at',
       key: 'created_at',
       width: 150,
       render: (text: string) => new Date(text).toLocaleString(),
     },
     {
-      title: '操作',
+      title: "Actions",
       key: 'action',
       width: 150,
       render: (_, record: UploadTask) => (
@@ -350,7 +350,7 @@ const UploadQueueManager: React.FC = () => {
               icon={<ReloadOutlined />}
               onClick={() => handleRetryTask(record.task_id)}
             >
-              重试
+              Retry
             </Button>
           )}
           {(record.status === 'queued' || record.status === 'processing') && (
@@ -361,7 +361,7 @@ const UploadQueueManager: React.FC = () => {
               icon={<StopOutlined />}
               onClick={() => handleCancelTask(record.task_id)}
             >
-              取消
+              Cancel
             </Button>
           )}
           {record.error_message && (
@@ -457,7 +457,7 @@ const UploadQueueManager: React.FC = () => {
               fetchUploadHistory();
             }}
           >
-            刷新
+            Refresh
           </Button>
         </Space>
       </Card>
@@ -503,7 +503,7 @@ const UploadQueueManager: React.FC = () => {
           <Form.Item
             name="title"
             label="视频标题"
-            rules={[{ required: true, message: '请输入视频标题' }]}
+            rules={[{ required: true, message: "Enter a video title" }]}
           >
             <Input placeholder="视频标题" maxLength={80} />
           </Form.Item>
@@ -517,7 +517,7 @@ const UploadQueueManager: React.FC = () => {
           
           <Form.Item
             name="tags"
-            label="标签"
+            label="Tags"
           >
             <Input placeholder="标签1,标签2,标签3" />
           </Form.Item>

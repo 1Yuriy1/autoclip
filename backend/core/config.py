@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     processing_min_score_threshold: float = Field(default=0.7, validation_alias=AliasChoices('PROCESSING_MIN_SCORE_THRESHOLD'))
     processing_max_clips_per_collection: int = Field(default=5, validation_alias=AliasChoices('PROCESSING_MAX_CLIPS_PER_COLLECTION'))
     processing_max_retries: int = Field(default=3, validation_alias=AliasChoices('PROCESSING_MAX_RETRIES'))
+    # 短视频/竖屏输出配置：clip_aspect_ratio='original' 保持源比例(如16:9)，='9:16' 输出竖屏短视频
+    clip_aspect_ratio: str = Field(default='original', validation_alias=AliasChoices('PROCESSING_CLIP_ASPECT_RATIO'))
+    # 竖屏排版：'crop' 居中裁剪铺满全屏，'blur_pad' 保留完整画面并用模糊背景填充
+    short_form_layout: str = Field(default='crop', validation_alias=AliasChoices('PROCESSING_SHORT_FORM_LAYOUT'))
+    short_form_width: int = Field(default=1080, validation_alias=AliasChoices('PROCESSING_SHORT_FORM_WIDTH'))
+    short_form_height: int = Field(default=1920, validation_alias=AliasChoices('PROCESSING_SHORT_FORM_HEIGHT'))
     log_level: str = Field(default='INFO', validation_alias=AliasChoices('LOG_LEVEL'))
     log_format: str = Field(default='%(asctime)s - %(name)s - %(levelname)s - %(message)s', validation_alias=AliasChoices('LOG_FORMAT'))
     log_file: str = Field(default='backend.log', validation_alias=AliasChoices('LOG_FILE'))

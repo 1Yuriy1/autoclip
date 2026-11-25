@@ -97,7 +97,7 @@ export const RealTimeStatus: React.FC<RealTimeStatusProps> = ({ userId, projectI
           <Card size="small">
             <Statistic
               title="加载状态"
-              value={loading ? '加载中' : '已完成'}
+              value={loading ? '加载中' : "Completed"}
               valueStyle={{ color: loading ? '#52c41a' : '#999' }}
             />
           </Card>
@@ -115,11 +115,11 @@ export const RealTimeStatus: React.FC<RealTimeStatusProps> = ({ userId, projectI
         {/* 任务进度 */}
         <Col span={12}>
           <Card 
-            title="任务进度" 
+            title="Task progress"
             size="small"
             extra={
               <Button size="small" onClick={() => setTasks([])}>
-                清空
+                Clear
               </Button>
             }
           >

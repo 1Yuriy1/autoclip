@@ -282,7 +282,7 @@ const DebugPage: React.FC = () => {
                   onClick={testApiConnections}
                   loading={loading}
                 >
-                  测试连接
+                  Test connection
                 </Button>
               }>
                 <Row gutter={16}>
@@ -385,7 +385,7 @@ const DebugPage: React.FC = () => {
             {/* 错误信息 */}
             {debugInfo.errors.length > 0 && (
               <Col span={24}>
-                <Card title="错误信息" style={{ borderColor: '#ff4d4f' }}>
+                <Card title="Error message" style={{ borderColor: '#ff4d4f' }}>
                   {debugInfo.errors.map((error, index) => (
                     <Alert
                       key={index}
@@ -401,7 +401,7 @@ const DebugPage: React.FC = () => {
 
             {/* 使用说明 */}
             <Col span={24}>
-              <Card title="使用说明">
+              <Card title="Help">
                 <Alert
                   message="调试步骤"
                   description={

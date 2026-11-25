@@ -217,7 +217,7 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
           const delay = Math.min(2000 * Math.pow(2, reconnectAttempts), 15000);
           console.log(`将在 ${delay}ms 后尝试重连 (${reconnectAttempts}/${maxReconnectAttempts})`);
           
-          reconnectTimeoutRef = setTimeout(() => {
+          reconnectTimeoutRef = window.setTimeout(() => {
             ensureConnected();
           }, delay);
         } else if (reconnectAttempts >= maxReconnectAttempts) {
@@ -244,7 +244,7 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
     }
     
     if (globalWs) {
-      globalWs.close(1000, '用户主动断开连接');
+      globalWs.close(1000, "Disconnected by user");
       globalWs = null;
     }
     
@@ -390,4 +390,4 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
     ping,
     getStatus
   };
-}; 
+};

@@ -374,7 +374,7 @@ class SpeechRecognizer:
             whisper_runtime.ensure_on_path()  # 让 faster_whisper 可导入
             from faster_whisper import WhisperModel  # 延迟导入：运行时安装目录里的包
 
-            language = None if config.language == LanguageCode.AUTO else str(config.language).split("-")[0]
+            language = None if config.language == LanguageCode.AUTO else config.language.value.split("-")[0]
             models_dir = str(whisper_runtime.get_models_dir() / "hub")
             logger.info(f"使用 faster-whisper 生成字幕: model={config.model} lang={language or 'auto'}")
 
@@ -683,4 +683,3 @@ def get_whisper_models() -> List[str]:
         Whisper模型列表
     """
     return ["tiny", "base", "small", "medium", "large"]
-

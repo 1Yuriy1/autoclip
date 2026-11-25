@@ -99,7 +99,7 @@ const ClipDetailModal: React.FC<ClipDetailModalProps> = ({
             marginBottom: '20px'
           }}>
             <Title level={4} style={{ margin: 0, color: '#ffffff' }}>
-              切片详情
+              Clip details
             </Title>
             <Button 
               type="text" 
@@ -146,7 +146,7 @@ const ClipDetailModal: React.FC<ClipDetailModalProps> = ({
                         border: 'none'
                       }}
                     >
-                      评分: {(clip.final_score * 100).toFixed(0)}分
+                      评分: {(clip.final_score * 100).toFixed(0)}points
                     </Tag>
                   )}
                   {clip.outline && (
@@ -162,7 +162,7 @@ const ClipDetailModal: React.FC<ClipDetailModalProps> = ({
                   icon={<PlayCircleOutlined />}
                   onClick={() => setPlaying(!playing)}
                 >
-                  {playing ? '暂停' : '播放'}
+                  {playing ? '暂停' : "Play"}
                 </Button>
                 <Button 
                   type="default" 
@@ -170,7 +170,7 @@ const ClipDetailModal: React.FC<ClipDetailModalProps> = ({
                   loading={downloading}
                   onClick={handleDownload}
                 >
-                  下载切片
+                  Download clip
                 </Button>
               </Space>
             </Col>
@@ -182,7 +182,7 @@ const ClipDetailModal: React.FC<ClipDetailModalProps> = ({
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ marginBottom: '8px' }}>
                     <EditableTitle
-                      title={clip.generated_title || clip.title || '未命名片段'}
+                      title={clip.generated_title || clip.title || "Untitled clip"}
                       clipId={clip.id}
                       onTitleUpdate={(newTitle) => {
                         // 更新clip的标题
@@ -203,7 +203,7 @@ const ClipDetailModal: React.FC<ClipDetailModalProps> = ({
                 {clip.content && clip.content.length > 0 && (
                   <div style={{ marginBottom: '16px' }}>
                     <Text strong style={{ color: '#ffffff', display: 'block', marginBottom: '8px' }}>
-                      内容要点:
+                      Highlights:
                     </Text>
                     <div>
                       {clip.content.map((point, index) => (
@@ -225,11 +225,11 @@ const ClipDetailModal: React.FC<ClipDetailModalProps> = ({
                 {/* 时间戳信息 */}
                 <div style={{ marginBottom: '16px' }}>
                   <Text strong style={{ color: '#ffffff', display: 'block', marginBottom: '8px' }}>
-                    时间信息:
+                    Timing:
                   </Text>
                   <div style={{ color: '#cccccc', fontSize: '14px' }}>
-                    <div>开始时间: {formatTime(clip.start_time)}</div>
-                    <div>结束时间: {formatTime(clip.end_time)}</div>
+                    <div>Start: {formatTime(clip.start_time)}</div>
+                    <div>End: {formatTime(clip.end_time)}</div>
                   </div>
                 </div>
 

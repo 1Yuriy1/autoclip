@@ -76,6 +76,12 @@ class PipelineAdapter:
         self.db = db or SessionLocal()
         self.progress_callback = progress_callback
         self.compat_mode = task_id is None or db is None
+        self.output_profile = None
+
+        if not self.compat_mode:
+            project = self.db.query(Project).filter(Project.id == project_id).first()
+            if project and project.processing_config:
+                self.output_profile = project.processing_config.get('output_profile')
         
         # 获取项目配置
         self.config = config_manager.get_processing_config()
@@ -353,7 +359,8 @@ class PipelineAdapter:
                 srt_path=input_srt_path,
                 metadata_dir=self.project_paths["metadata_dir"],
                 output_path=output_path,
-                prompt_files=prompt_files
+                prompt_files=prompt_files,
+                output_profile=self.output_profile,
             )
             
             return {"status": "success", "result": result, "output_path": str(output_path)}
@@ -384,7 +391,8 @@ class PipelineAdapter:
                 outline_path=outline_path,
                 metadata_dir=self.project_paths["metadata_dir"],
                 output_path=output_path,
-                prompt_files=prompt_files
+                prompt_files=prompt_files,
+                output_profile=self.output_profile,
             )
             
             return {"status": "success", "result": result, "output_path": str(output_path)}
@@ -507,7 +515,8 @@ class PipelineAdapter:
                 output_dir=self.project_paths["output_dir"],
                 clips_dir=str(self.project_paths["clips_dir"]),
                 collections_dir=str(self.project_paths["collections_dir"]),
-                metadata_dir=self.project_paths["metadata_dir"]
+                metadata_dir=self.project_paths["metadata_dir"],
+                output_profile=self.output_profile,
             )
             
             return {"status": "success", "result": result}

@@ -169,7 +169,7 @@ const DesktopSettings: React.FC = () => {
         setConfig(configData);
       } else {
         const errorData = await response.json();
-        message.error(`配置保存失败: ${errorData.detail || '未知错误'}`);
+        message.error(`配置保存失败: ${errorData.detail || "Unknown error"}`);
       }
     } catch (error) {
       console.error('配置保存错误:', error);
@@ -278,7 +278,7 @@ const DesktopSettings: React.FC = () => {
                     loading={loading}
                     icon={<SaveOutlined />}
                   >
-                    保存配置
+                    Save settings
                   </Button>
                   <Button 
                     icon={<ReloadOutlined />}
@@ -332,7 +332,7 @@ const DesktopSettings: React.FC = () => {
 
               <Divider />
 
-              <Title level={4}>模型配置</Title>
+              <Title level={4}>Model settings</Title>
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
@@ -369,7 +369,7 @@ const DesktopSettings: React.FC = () => {
                   loading={loading}
                   icon={<SaveOutlined />}
                 >
-                  保存配置
+                  Save settings
                 </Button>
               </Form.Item>
             </Form>
@@ -434,7 +434,7 @@ const DesktopSettings: React.FC = () => {
                   loading={loading}
                   icon={<SaveOutlined />}
                 >
-                  保存配置
+                  Save settings
                 </Button>
               </Form.Item>
             </Form>

@@ -84,11 +84,11 @@ export const SimpleProjectCard: React.FC<SimpleProjectCardProps> = ({
 
   const handleDelete = () => {
     Modal.confirm({
-      title: '确认删除',
+      title: "Confirm deletion",
       content: `确定要删除项目 "${project.title}" 吗？此操作不可撤销。`,
-      okText: '删除',
+      okText: "Delete",
       okType: 'danger',
-      cancelText: '取消',
+      cancelText: "Cancel",
       onOk: () => {
         if (onDelete) {
           onDelete(project.id)
@@ -109,7 +109,7 @@ export const SimpleProjectCard: React.FC<SimpleProjectCardProps> = ({
       return {
         icon: <ExclamationCircleOutlined />,
         color: '#ff4d4f',
-        text: '处理失败'
+        text: "Processing failed"
       }
     }
     
@@ -117,7 +117,7 @@ export const SimpleProjectCard: React.FC<SimpleProjectCardProps> = ({
       return {
         icon: <CheckCircleOutlined />,
         color: '#52c41a',
-        text: '处理完成'
+        text: "Processing complete"
       }
     }
     
@@ -125,7 +125,7 @@ export const SimpleProjectCard: React.FC<SimpleProjectCardProps> = ({
       return {
         icon: <ReloadOutlined spin />,
         color: '#1890ff',
-        text: '处理中'
+        text: "Processing"
       }
     }
     
@@ -146,32 +146,32 @@ export const SimpleProjectCard: React.FC<SimpleProjectCardProps> = ({
       style={{ margin: '8px 0' }}
       actions={[
         canStart && (
-          <Tooltip title="开始处理">
+          <Tooltip title="Start processing">
             <Button 
               type="primary" 
               icon={<PlayCircleOutlined />}
               onClick={handleStartProcessing}
             >
-              开始处理
+              Start processing
             </Button>
           </Tooltip>
         ),
         canRetry && (
-          <Tooltip title="重试">
+          <Tooltip title="Retry">
             <Button 
               icon={<ReloadOutlined />}
               onClick={handleRetry}
             >
-              重试
+              Retry
             </Button>
           </Tooltip>
         ),
-        <Tooltip title="查看详情">
+        <Tooltip title="View details">
           <Button 
             icon={<EyeOutlined />}
             onClick={handleViewDetails}
           >
-            查看详情
+            View details
           </Button>
         </Tooltip>,
         <Tooltip title="删除项目">
@@ -180,7 +180,7 @@ export const SimpleProjectCard: React.FC<SimpleProjectCardProps> = ({
             icon={<DeleteOutlined />}
             onClick={handleDelete}
           >
-            删除
+            Delete
           </Button>
         </Tooltip>
       ].filter(Boolean)}

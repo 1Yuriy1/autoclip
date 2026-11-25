@@ -2,7 +2,9 @@
 简化的流水线适配器 - 集成新的进度系统
 """
 
+import json
 import logging
+import math
 from typing import Dict, Any, Optional, Callable
 from pathlib import Path
 
@@ -13,6 +15,7 @@ from backend.pipeline.step3_scoring import run_step3_scoring
 from backend.pipeline.step4_title import run_step4_title
 from backend.pipeline.step5_clustering import run_step5_clustering
 from backend.pipeline.step6_video import run_step6_video
+from backend.utils.video_processor import VideoProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +23,54 @@ logger = logging.getLogger(__name__)
 class SimplePipelineAdapter:
     """简化的流水线适配器，使用固定阶段进度系统"""
     
-    def __init__(self, project_id: str, task_id: str):
+    def __init__(self, project_id: str, task_id: str,
+                 processing_config: Optional[Dict[str, Any]] = None):
         self.project_id = project_id
         self.task_id = task_id
+        self.processing_config = processing_config or {}
+        self.output_profile = self.processing_config.get('output_profile')
+
+    def _build_shorts_fallback_clip(self, input_video_path: str, outlines: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+        """Keep a valid short-form source usable when speech analysis yields no timeline.
+
+        Music, ambience, and other low-speech videos can legitimately produce an
+        empty transcript/timeline. For a Shorts project, exporting the source as
+        one bounded clip is more useful than reporting success with zero outputs.
+        """
+        profile = self.output_profile or {}
+        profile_value = str(profile.get('format') or profile.get('aspect_ratio') or '').lower()
+        if profile_value not in {'youtube_shorts', 'shorts', 'short', '9:16', '9/16', 'vertical', 'portrait'}:
+            return []
+
+        info = VideoProcessor.get_video_info(Path(input_video_path))
+        duration = min(
+            float(info.get('duration', 0) or 0),
+            float(profile.get('max_duration_seconds', 180) or 180),
+        )
+        if duration <= 0:
+            return []
+
+        source_info = self.processing_config.get('youtube_info') or {}
+        source_title = source_info.get('title') or 'YouTube Short'
+        target_duration = max(1.0, float(profile.get('target_duration_seconds', 60) or 60))
+        clip_count = max(1, math.ceil(duration / target_duration))
+        segment_duration = duration / clip_count
+
+        clips = []
+        for index in range(clip_count):
+            start = segment_duration * index
+            end = duration if index == clip_count - 1 else segment_duration * (index + 1)
+            title = source_title if clip_count == 1 else f'{source_title} — Part {index + 1}'
+            clips.append({
+                'id': str(index + 1),
+                'start_time': VideoProcessor.convert_seconds_to_ffmpeg_time(start),
+                'end_time': VideoProcessor.convert_seconds_to_ffmpeg_time(end),
+                'outline': title,
+                'content': ['Short-form segment created from a low-speech source video'],
+                'chunk_index': 0,
+                'fallback_clip': True,
+            })
+        return clips
         
     async def _generate_subtitle_automatically(self, video_path: str, metadata_dir: Path) -> Path:
         """
@@ -119,20 +167,27 @@ class SimplePipelineAdapter:
             logger.info("执行Step 1: 大纲提取")
             if input_srt_path and Path(input_srt_path).exists():
                 logger.info(f"使用现有SRT文件: {input_srt_path}")
-                outlines = run_step1_outline(Path(input_srt_path), metadata_dir=metadata_dir)
+                outlines = run_step1_outline(
+                    Path(input_srt_path),
+                    metadata_dir=metadata_dir,
+                    output_profile=self.output_profile,
+                )
             else:
                 logger.warning("没有SRT文件，尝试自动生成字幕")
                 # 尝试自动生成字幕
                 srt_path = await self._generate_subtitle_automatically(input_video_path, metadata_dir)
                 if srt_path and srt_path.exists():
                     logger.info(f"自动生成字幕成功: {srt_path}")
-                    outlines = run_step1_outline(srt_path, metadata_dir=metadata_dir)
+                    outlines = run_step1_outline(
+                        srt_path,
+                        metadata_dir=metadata_dir,
+                        output_profile=self.output_profile,
+                    )
                 else:
                     logger.warning("自动生成字幕失败，创建空大纲")
                     # 创建一个空的大纲文件
                     outlines = []
                     outline_file = metadata_dir / "step1_outline.json"
-                    import json
                     with open(outline_file, 'w', encoding='utf-8') as f:
                         json.dump(outlines, f, ensure_ascii=False, indent=2)
             emit_progress(self.project_id, "SUBTITLE", "字幕处理完成", subpercent=50)
@@ -145,23 +200,51 @@ class SimplePipelineAdapter:
             if outlines:  # 只有当有大纲时才执行后续步骤
                 timeline_data = run_step2_timeline(
                     metadata_dir / "step1_outline.json",
-                    metadata_dir=metadata_dir
+                    metadata_dir=metadata_dir,
+                    output_profile=self.output_profile,
                 )
+                if not timeline_data:
+                    timeline_data = self._build_shorts_fallback_clip(input_video_path, outlines)
+                    if timeline_data:
+                        logger.warning(
+                            "时间线为空，Shorts 模式回退为 %d 个均衡片段",
+                            len(timeline_data),
+                        )
+                        with open(metadata_dir / "step2_timeline.json", 'w', encoding='utf-8') as f:
+                            json.dump(timeline_data, f, ensure_ascii=False, indent=2)
                 emit_progress(self.project_id, "ANALYZE", "时间线提取完成", subpercent=50)
                 
                 # Step 3: 内容评分
                 logger.info("执行Step 3: 内容评分")
-                scored_clips = run_step3_scoring(
-                    metadata_dir / "step2_timeline.json",
-                    metadata_dir=metadata_dir
-                )
+                fallback_clips = [clip for clip in timeline_data if clip.get('fallback_clip')]
+                if fallback_clips:
+                    scored_clips = [
+                        {
+                            **clip,
+                            'final_score': 1.0,
+                            'recommend_reason': 'The source is already a complete short-form video.',
+                        }
+                        for clip in fallback_clips
+                    ]
+                    for output_name in ('step3_all_scored.json', 'step3_high_score_clips.json'):
+                        with open(metadata_dir / output_name, 'w', encoding='utf-8') as f:
+                            json.dump(scored_clips, f, ensure_ascii=False, indent=2)
+                else:
+                    scored_clips = run_step3_scoring(
+                        metadata_dir / "step2_timeline.json",
+                        metadata_dir=metadata_dir
+                    )
+                if not scored_clips:
+                    raise RuntimeError(
+                        'No clips met the minimum score threshold. Review the saved scores '
+                        'and adjust the threshold before retrying.'
+                    )
                 emit_progress(self.project_id, "ANALYZE", "内容分析完成", subpercent=100)
             else:
                 logger.warning("没有大纲数据，跳过时间线提取和内容评分")
                 # 创建空的时间线和评分文件
                 timeline_file = metadata_dir / "step2_timeline.json"
                 scored_file = metadata_dir / "step3_high_score_clips.json"
-                import json
                 with open(timeline_file, 'w', encoding='utf-8') as f:
                     json.dump([], f, ensure_ascii=False, indent=2)
                 with open(scored_file, 'w', encoding='utf-8') as f:
@@ -177,10 +260,18 @@ class SimplePipelineAdapter:
             # Step 4: 标题生成
             logger.info("执行Step 4: 标题生成")
             if outlines:  # 只有当有大纲时才执行后续步骤
-                titled_clips = run_step4_title(
-                    metadata_dir / "step3_high_score_clips.json",
-                    metadata_dir=str(metadata_dir)
-                )
+                if scored_clips and all(clip.get('fallback_clip') for clip in scored_clips):
+                    titled_clips = [
+                        {**clip, 'generated_title': clip.get('outline') or 'YouTube Short'}
+                        for clip in scored_clips
+                    ]
+                    with open(metadata_dir / "step4_titles.json", 'w', encoding='utf-8') as f:
+                        json.dump(titled_clips, f, ensure_ascii=False, indent=2)
+                else:
+                    titled_clips = run_step4_title(
+                        metadata_dir / "step3_high_score_clips.json",
+                        metadata_dir=str(metadata_dir)
+                    )
                 emit_progress(self.project_id, "HIGHLIGHT", "标题生成完成", subpercent=40)
                 
                 # Step 5: 主题聚类
@@ -203,14 +294,14 @@ class SimplePipelineAdapter:
                     output_dir=output_dir,
                     clips_dir=str(clips_output_dir),
                     collections_dir=str(collections_output_dir),
-                    metadata_dir=str(metadata_dir)
+                    metadata_dir=str(metadata_dir),
+                    output_profile=self.output_profile,
                 )
             else:
                 logger.warning("没有大纲数据，跳过标题生成、主题聚类和视频切割")
                 # 创建空的标题和合集文件
                 titles_file = metadata_dir / "step4_titles.json"
                 collections_file = metadata_dir / "step5_collections.json"
-                import json
                 with open(titles_file, 'w', encoding='utf-8') as f:
                     json.dump([], f, ensure_ascii=False, indent=2)
                 with open(collections_file, 'w', encoding='utf-8') as f:
@@ -221,6 +312,11 @@ class SimplePipelineAdapter:
                 emit_progress(self.project_id, "HIGHLIGHT", "片段定位完成", subpercent=100)
                 emit_progress(self.project_id, "EXPORT", "开始视频导出")
                 video_result = {"status": "skipped", "message": "没有内容可处理"}
+            if not video_result.get('clips_generated'):
+                raise RuntimeError(
+                    'No clips were exported. No candidates may have met the score threshold, '
+                    'or video export failed. Review the processing results before retrying.'
+                )
             emit_progress(self.project_id, "EXPORT", "视频导出完成", subpercent=100)
             
             # 阶段6: 处理完成
@@ -260,20 +356,24 @@ class SimplePipelineAdapter:
             }
             
         except Exception as e:
-            error_msg = f"流水线处理失败: {str(e)}"
+            error_msg = f"Processing failed: {e}"
             logger.error(error_msg)
             
             # 发送失败状态
-            emit_progress(self.project_id, "DONE", f"处理失败: {error_msg}")
+            # DONE is reserved for successful exports; a failed stage must not
+            # be interpreted as completed by the progress UI.
+            emit_progress(self.project_id, "EXPORT", error_msg)
             
             return {
                 "status": "failed",
                 "project_id": self.project_id,
                 "task_id": self.task_id,
+                "message": error_msg,
                 "error": error_msg
             }
 
 
-def create_simple_pipeline_adapter(project_id: str, task_id: str) -> SimplePipelineAdapter:
+def create_simple_pipeline_adapter(project_id: str, task_id: str,
+                                   processing_config: Optional[Dict[str, Any]] = None) -> SimplePipelineAdapter:
     """创建简化的流水线适配器实例"""
-    return SimplePipelineAdapter(project_id, task_id)
+    return SimplePipelineAdapter(project_id, task_id, processing_config=processing_config)

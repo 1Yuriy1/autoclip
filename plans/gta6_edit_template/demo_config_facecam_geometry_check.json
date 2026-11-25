@@ -1,0 +1,13 @@
+{
+  "mode": "facecam",
+  "source_path": "/Users/yuriy/autoclip/data/projects/cb68835a-3d97-4ffb-a333-47e9e1c6ec47/output/clips/1_The Importance of Absolute Testimony and Threat Tactics in Witness Manipulation.mp4",
+  "facecam_crop": {"x": 320, "y": 0, "w": 320, "h": 360},
+  "facecam_height_ratio": 0.38,
+  "output_path": "/Users/yuriy/autoclip/plans/gta6_edit_template/sample_output/facecam_mode_geometry_check.mp4",
+  "hook_text": "Facecam layout geometry check",
+  "streamer_credit": "clipped from @DemoStreamer",
+  "radio_mute_windows": [],
+  "max_duration": 6,
+  "gore_check_passed": true,
+  "_note": "NOT a real facecam source. No streamer facecam gaming clip exists anywhere in this repo (checked data/projects, output/, shorts-studio-sandbox). This cuts the same non-GTA Suits clip in two (a corner crop standing in for 'facecam', the full frame standing in for 'gameplay') purely to prove the single-source facecam/gameplay split, vstack composite, and text-safe-zone placement work across both panes. Treat it as a mechanism check, not a creative sample -- see README.md."
+}

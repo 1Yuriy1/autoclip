@@ -2,6 +2,7 @@ import axios from 'axios'
 import { Project, Clip, Collection } from '../store/useProjectStore'
 import { errorHandler } from '../utils/errorHandler'
 import { apiConfigManager } from '../utils/apiConfig'
+import { categoryLabels, englishSystemText, whisperLabels } from '../utils/englishUi'
 import {
   trackVideoImported,
   trackClipsExported,
@@ -103,17 +104,17 @@ api.interceptors.response.use(
     
     // 保持原有的错误对象结构，确保向后兼容
     if (error.response?.status === 429) {
-      const message = error.response?.data?.detail || '系统正在处理其他项目，请稍后再试'
+      const message = error.response?.data?.detail || "Another project is being processed. Please try again shortly."
       error.userMessage = message
     }
     else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      error.userMessage = '请求超时，项目可能仍在后台处理中，请稍后查看项目状态'
+      error.userMessage = "The request timed out, but the project may still be processing. Check its status shortly."
     }
     else if (error.code === 'NETWORK_ERROR' || !error.response) {
-      error.userMessage = '网络连接失败，请检查网络连接'
+      error.userMessage = "Network connection failed. Check your connection."
     }
     else if (error.response?.status >= 500) {
-      error.userMessage = '服务器内部错误，请稍后重试'
+      error.userMessage = "Server error. Please try again later."
     }
     
     return Promise.reject(error)
@@ -125,6 +126,8 @@ export interface UploadFilesRequest {
   srt_file?: File
   project_name: string
   video_category?: string
+  output_format?: 'original' | 'youtube_shorts'
+  shorts_layout?: 'crop' | 'blur_pad'
 }
 
 export interface VideoCategory {
@@ -167,6 +170,8 @@ export interface BilibiliDownloadRequest {
   project_name: string
   video_category?: string
   browser?: string
+  output_format?: 'original' | 'youtube_shorts'
+  shorts_layout?: 'crop' | 'blur_pad'
 }
 
 export interface BilibiliDownloadTask {
@@ -224,7 +229,11 @@ export const settingsApi = {
 export const projectApi = {
   // 获取视频分类配置
   getVideoCategories: async (): Promise<VideoCategoriesResponse> => {
-    return api.get('/video-categories')
+    const response = await api.get('/video-categories') as unknown as VideoCategoriesResponse
+    return {
+      ...response,
+      categories: response.categories.map(category => ({ ...category, ...categoryLabels[category.value] })),
+    }
   },
 
   // 获取所有项目
@@ -250,6 +259,8 @@ export const projectApi = {
     if (data.video_category) {
       formData.append('video_category', data.video_category)
     }
+    formData.append('output_format', data.output_format || 'youtube_shorts')
+    formData.append('shorts_layout', data.shorts_layout || 'blur_pad')
     
     try {
       const project = await api.post<unknown, Project>('/projects/upload', formData, {
@@ -465,7 +476,8 @@ export const projectApi = {
       const response = await axios.get(`/api/v1${url}`, { 
         responseType: 'blob',
         headers: {
-          'Accept': 'application/octet-stream'
+          'Accept': 'application/octet-stream',
+          'Range': 'bytes=0-0'
         }
       })
       
@@ -489,18 +501,14 @@ export const projectApi = {
         }
       }
       
-      // 创建下载链接
-      const blob = new Blob([response.data], { type: 'video/mp4' })
-      const downloadUrl = window.URL.createObjectURL(blob)
+      // Let the browser stream the attachment; avoid holding the entire video
+      // in a blob URL that can be revoked before an embedded browser saves it.
       const link = document.createElement('a')
-      link.href = downloadUrl
+      link.href = `/api/v1${url}`
       link.download = filename
-      
-      // 触发下载
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(downloadUrl)
+      link.remove()
 
       trackClipsExported({
         clipCount: 1,
@@ -509,7 +517,7 @@ export const projectApi = {
       })
       return response.data
     } catch (error: any) {
-      console.error('下载失败:', error)
+      console.error("Download failed:", error)
       trackProcessingFailed({
         stage: 'export',
         message: error?.message,
@@ -649,10 +657,22 @@ export interface WhisperModel {
 
 // 语音识别 / Whisper 运行时与模型管理
 export const speechApi = {
-  getRuntimeStatus: (): Promise<WhisperRuntimeStatus> => api.get('/whisper/runtime-status'),
-  installRuntime: (): Promise<{ started: boolean; message: string }> => api.post('/whisper/install'),
-  uninstallRuntime: (): Promise<{ success: boolean; message: string }> => api.post('/whisper/uninstall'),
-  getModels: (): Promise<WhisperModel[]> => api.get('/whisper-models'),
+  getRuntimeStatus: async (): Promise<WhisperRuntimeStatus> => {
+    const result = await api.get('/whisper/runtime-status') as unknown as WhisperRuntimeStatus
+    return { ...result, message: englishSystemText(result.message) }
+  },
+  installRuntime: async (): Promise<{ started: boolean; message: string }> => {
+    const result = await api.post('/whisper/install') as unknown as { started: boolean; message: string }
+    return { ...result, message: englishSystemText(result.message) }
+  },
+  uninstallRuntime: async (): Promise<{ success: boolean; message: string }> => {
+    const result = await api.post('/whisper/uninstall') as unknown as { success: boolean; message: string }
+    return { ...result, message: englishSystemText(result.message) }
+  },
+  getModels: async (): Promise<WhisperModel[]> => {
+    const models = await api.get('/whisper-models') as unknown as WhisperModel[]
+    return models.map(model => ({ ...model, ...whisperLabels[model.name] }))
+  },
   downloadModel: (model: string): Promise<unknown> => api.post('/whisper-models/download', { model }),
   deleteModel: (model: string): Promise<unknown> => api.delete(`/whisper-models/${model}`),
 }
